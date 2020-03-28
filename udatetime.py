@@ -18,14 +18,14 @@ eastern_tz = pytz.timezone("US/Eastern")
 #
 
 def now_as_utc() -> datetime:
-    """ get current time as a tz-aware datetime 
-    if you are on CT and your local time is 4pm, the UTC time is 9pm 
+    """ get current time as a tz-aware datetime
+    if you are on CT and your local time is 4pm, the UTC time is 9pm
     """
     xnow = datetime.now().astimezone(pytz.UTC)
     return xnow
 
 def now_as_eastern() -> datetime:
-    """ get current time on east-coast as a tz-aware datetime 
+    """ get current time on east-coast as a tz-aware datetime
     """
     xnow = datetime.now().astimezone(eastern_tz)
     return xnow
@@ -39,7 +39,7 @@ def naivedate_as_eastern(dt: datetime) -> datetime:
     return dt.astimezone(eastern_tz)
 
 def now_as_local() -> datetime:
-    """ get current time as a tz-aware datetime 
+    """ get current time as a tz-aware datetime
     """
     xnow = datetime.now().astimezone()
     return xnow
