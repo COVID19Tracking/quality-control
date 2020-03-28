@@ -1,60 +1,40 @@
 from loguru import logger
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 import udatetime
 from sources import GoogleWorksheet
-from datetime import datetime
-
+from  result_log import ResultLog
 import checks
-
-class ResultsLog():
-
-    def __init__(self):
-        self.errors = []
-        self.warnings = []
-
-    def add_results(self, error: str, warning: str) -> None:
-        self.errors += [error] if error is not None else []
-        self.warnings += [warning] if warning is not None else []
 
 
 def check_day(df) -> None:
 
-    logger.info("==| Internal Consistency Check |==============================================================")
-    for row in df.itertuples():
-        log = ResultsLog()
+    log = ResultLog()
 
+    for row in df.itertuples():
+
+        state = row.State
         (error, warning) = checks.last_update(row)
-        log.add_results(error, warning)
+        log.add_results(state, error, warning)
 
         (error, warning) = checks.positives_rate(row)
-        log.add_results(error, warning)
+        log.add_results(state, error, warning)
 
         (error, warning) = checks.death_rate(row)
-        log.add_results(error, warning)
+        log.add_results(state, error, warning)
 
         ## The recovered column isn't in the API data
         # (error, warning) = checks.less_recovered_than_positive(row)
         # log.add_results(error, warning)
 
         (error, warning) = checks.pendings_rate(row)
-        log.add_results(error, warning)
-
-        # Print results
-        if len(log.errors) == 0 and len(log.warnings) == 0:
-            continue
-        else:
-            logger.warning(f"check {row.state} -->")
-            for m in log.errors:
-                logger.error(f"   |  {m}")
-            for m in log.warnings:
-                logger.warning(f"   |  {m}")
-
-    logger.info("")
-    logger.info("==| Previous Day Check |======================================================================")
+        log.add_results(state, error, warning)
 
 
+    log.print()
+    #log.post()
 
 def check_dev_sheet():
     """
