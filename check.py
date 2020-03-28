@@ -8,42 +8,49 @@ import numpy as np
 
 import udatetime
 from sources import GoogleWorksheet
+from error_report import ErrorReport
 from datetime import datetime
 
 def check_all():
 
     gs = GoogleWorksheet()
 
-    # get working data from https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
-    df = gs.load_dev_from_google()
+    report = ErrorReport()
 
     current_time = udatetime.now_as_eastern()
 
-    logger.info("==| Internal Consistency Check |==============================================================")
-    for row in df.itertuples():
-        check_one(row, current_time)
-    logger.info("")
+    if True:
+    # get working data from https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
+        df = gs.load_dev_from_google()
 
-    logger.info("==| Previous Day Check |==============================================================")
+
+        logger.info("==| Internal Consistency Check |==============================================================")
+        for row in df.itertuples():
+            check_one(report, row, current_time)
+        logger.info("")
+
+        logger.info("==| Previous Day Check |==============================================================")
 
     # get published data from https://covidtracking.com/api/states/daily
     #   this includes all previous dates
     #df_published = gs.load_published_from_api()
+    #idt = current_time.year * 10000 + current_time.month * 100 + current_time.day
+
+    report.print()
 
 
-
-def check_one(row, current_time: datetime) -> bool:
+def check_one(report: ErrorReport, row, current_time: datetime):
 
     state = row.State
-    #logger.info(f"check {state}")
-    # print(f"values = {row})
+    logger.info(f"check {state}")
+    print(f"values = {row}")
 
-    n_pos, n_neg, n_pending, n_recovered, n_deaths = \
-        row.Positive, row.Negative, row.Pending, row.Recovered, row.Deaths
-    n_tot = n_pos + n_neg + n_deaths
-
-    errors = []
-    warnings = []
+    n_pos, n_neg, n_pending, n_recovered, n_deaths, n_tot = \
+        row.Positive, row.Negative, row.Pending, row.Recovered, row.Deaths, row.Total
+    
+    n_diff = n_tot - (n_pos + n_neg + n_pending)
+    if n_diff != 0:
+        report.error(state, f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
 
     # ===========================================
     # check last update
@@ -52,7 +59,7 @@ def check_one(row, current_time: datetime) -> bool:
     delta = current_time - updated_at
     hours = delta.total_seconds() / (60.0 * 60)
     if hours > 36.0:
-        errors.append(f"{state} hasn't been updated in {hours:.0f}  hours")
+        report.error(state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
     #elif hours > 18.0:
     #    warnings.append(f"{state} hasn't been updated in {hours:.0f} hours")
 
@@ -64,32 +71,32 @@ def check_one(row, current_time: datetime) -> bool:
     percent_pos = 100.0 * n_pos / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
         if percent_pos > 20.0:
-            errors.append(f"{state} has too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
+            report.error(state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
     else:
         if percent_pos > 50.0:
-            errors.append(f"{state} has too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
+            report.error(state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
 
     # deaths should be less than 2% 
     percent_deaths = 100.0 * n_deaths / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
         if percent_deaths > 2.0:
-            errors.append(f"{state} has too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
+            report.error(state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
     else:
         if percent_deaths > 10.0:
-            errors.append(f"{state} has too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
+            report.error(state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
 
     # can't have more recovered than positive 
     if n_recovered > n_pos:
-        errors.append(f"{state} has more recovered than positive (recovered={n_recovered:,}, positive={n_pos:,})")
+        report.error(state, f"Tore recovered than positive (recovered={n_recovered:,}, positive={n_pos:,})")
 
     # pendings shouldn't be more than 20% of total 
     percent_pending = 100.0 * n_pending / n_tot if n_tot > 0 else 0.0
     if n_tot > 1000:
         if percent_pending > 20.0:
-            warnings.append(f"{state} has too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
+            report.error(state, f"Too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
     else:
         if percent_pending > 80.0:
-            warnings.append(f"{state} has too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
+            report.error(state, f"Too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
 
 
     # ===========================================
@@ -98,20 +105,8 @@ def check_one(row, current_time: datetime) -> bool:
 
     # can't have more recovered than positive 
     if n_recovered > n_pos:
-        errors.append(f"{state} has more recovered than positive (recovered={n_recovered:,}, positive={n_pos:,})")
+        report.error(state, f"More recovered than positive (recovered={n_recovered:,}, positive={n_pos:,})")
 
-
-
-    if len(errors) == 0 and len(warnings) == 0:
-        #logger.info(f"check {state} --> OKAY")
-        return True
-
-    logger.warning(f"check {state} -->")
-    for m in errors:
-        logger.error(f"   |  {m}")
-    for m in warnings:
-        logger.warning(f"   |  {m}")
-    return False
 
 if __name__ == "__main__":
     check_all()
