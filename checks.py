@@ -5,6 +5,18 @@ import numpy as np
 import udatetime
 from datetime import datetime
 
+def total(row) -> (str, str):
+    error = None
+    warning = None
+
+    n_pos, n_neg, n_pending, n_tot = \
+        row.positive, row.negative, row.pending, row.total
+    
+    n_diff = n_tot - (n_pos + n_neg + n_pending)
+    if n_diff != 0:
+        error = f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}"
+    return (error, warning)
+
 def last_update(row) -> (str, str):
     """Check that the data has been updated within a reasonable timeframe"""
     error = None

@@ -14,6 +14,7 @@ class ResultLog():
 
     def print(self):
 
+        print("")
         if len(self.errors) == 0 and len(self.warnings) == 0:
             print("No Errors or Warnings")
 
@@ -25,6 +26,7 @@ class ResultLog():
             print("=====| WARNINGS |===========")
             for location, message in self.warnings:
                 print(f"{location}: {message}")
+        print("")
 
 
     def post(self):

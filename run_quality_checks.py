@@ -16,6 +16,10 @@ def check_day(df) -> None:
     for row in df.itertuples():
 
         state = row.state
+
+        (error, warning) = checks.total(row)
+        log.add_results(state, error, warning)
+
         (error, warning) = checks.last_update(row)
         log.add_results(state, error, warning)
 
