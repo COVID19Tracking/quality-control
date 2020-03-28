@@ -28,7 +28,7 @@ def last_update(row) -> (str, str):
     hours = delta.total_seconds() / (60.0 * 60)
 
     if hours > 36.0:
-        error = f"{row.state} hasn't been updated in {hours:.0f}  hours"
+        error = f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours"
     #elif hours > 18.0:
     #    warning = f"{state} hasn't been updated in {hours:.0f} hours"
 
