@@ -61,7 +61,7 @@ class GoogleWorksheet():
 
 
     def read_values(self, sheet_id: str, cell_range: str) -> List[List]:
-        " read results as a list of lists"
+        """Read results as a list of lists"""
 
         if self.trace: logger.info(f"read {cell_range}")
         result = self.sheets.values().get(spreadsheetId=sheet_id, range=cell_range).execute()
@@ -72,7 +72,7 @@ class GoogleWorksheet():
 
 
     def read_as_frame(self, sheet_id: str, cell_range: str, header_rows = 1) -> pd.DataFrame:
-        " read results as a data frame, first row is headers"
+        """Read results as a data frame, first row is headers"""
 
         values = self.read_values(sheet_id, cell_range)
 
@@ -110,39 +110,38 @@ class GoogleWorksheet():
         return pd.DataFrame(xdict)
 
 
-    def load_published_from_api(self) -> pd.DataFrame:
-        df =  pd.read_json("https://covidtracking.com/api/states/daily")
-        df.fillna(0.0, inplace=True)
-        for c in ["positive", "negative", "pending", "hospitalized", "total", "death", "totalTestResults"]:
-            c2 = c + "Increase"
-            df[c] = df[c].astype(np.int)
-            if c2 in df.columns:
-                df[c2] = df[c2].astype(np.int)
-        print(df.columns)
-        print(df.dtypes)
-        exit(-1)
-
-
     def load_dev_from_google(self) -> pd.DataFrame:
+        """Load the dev data from google sheets"""
+
+        # make dev columns match api columns so quality
+        # checks run with both inputs
+        column_map = {
+            'TESTING & OUTCOMES State':'state',
+            'TESTING & OUTCOMES Positive':'positive',
+            'TESTING & OUTCOMES Negative':'negative',
+            'TESTING & OUTCOMES Pending':'pending',
+            'Hospitalized Current':'hospitalized',
+            'Hospitalized Cumulative':'hospitalizedCumulative',
+            'ICU Current':'icu',
+            'ICU Cumulative':'icuCumulative',
+            'Ventilator Current':'ventilator',
+            'Ventilator Cumulative':'ventilatorCumulative',
+            'Ventilator Recovered':'recovered', # api misreads from sheet
+            'Ventilator Deaths':'death', # api misreads from sheet
+            'CALCULATED Total':'total',
+            'Last Update (ET)':'lastUpdateEt'
+        }
+
         dev_id = self.get_sheet_id_by_name("dev")
         df = self.read_as_frame(dev_id, "Worksheet!G2:T60", header_rows=2)
-
-        columns = [x.replace("TESTING & OUTCOMES ", "") for x in df.columns]
-        columns = [x.replace("Ventilator ", "") for x in columns]
-
-        columns[8] = "Ventilator " + columns[8]
-        columns[9] = "Ventilator " + columns[9]
-        columns[-2] = "Total"
-        columns[-1] = "Last_Update"
-        columns = [x.replace(" ", "_") for x in columns]
-        df.columns = columns
+        df.columns = [column_map[c] for c in df.columns.values]
 
         for c in df.columns[1:-1]:
             df[c] = df[c].str.strip().replace("", "0").replace(re.compile(","), "")
             df[c] = df[c].astype(np.int)
 
-        df["Last_Update"] = pd.to_datetime(df["Last_Update"].str.replace(" ", "/2020 "), format="%m/%d/%Y %H:%M")
-        print(df)
+        df["lastUpdateEt"] = pd.to_datetime(df["lastUpdateEt"].str.replace(" ", "/2020 "), format="%m/%d/%Y %H:%M")
+
         return df
 
 
