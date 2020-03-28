@@ -113,16 +113,24 @@ class GoogleWorksheet():
 
     def load_dev_from_google(self) -> pd.DataFrame:
         dev_id = self.get_sheet_id_by_name("dev")
-        df = self.read_as_frame(dev_id, "Worksheet!G2:R60", header_rows=2)
+        df = self.read_as_frame(dev_id, "Worksheet!G2:T60", header_rows=2)
 
         columns = [x.replace("TESTING & OUTCOMES ", "") for x in df.columns]
+        columns = [x.replace("Ventilator ", "") for x in columns]
+        
+        columns[8] = "Ventilator " + columns[8]
         columns[9] = "Ventilator " + columns[9]
+        columns[-2] = "Total"
+        columns[-1] = "Last_Update"
         columns = [x.replace(" ", "_") for x in columns]
         df.columns = columns
 
-        for c in df.columns[1:]: 
+        for c in df.columns[1:-1]: 
             df[c] = df[c].str.strip().replace("", "0").replace(re.compile(","), "")
             df[c] = df[c].astype(np.int)
+        
+        df["Last_Update"] = pd.to_datetime(df["Last_Update"].str.replace(" ", "/2020 "), format="%m/%d/%Y %H:%M")
+        print(df)
         return df
 
 

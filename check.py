@@ -2,11 +2,13 @@
 # The main check loop
 # 
 from loguru import logger
-from sources import GoogleWorksheet
 #from typing import Tuple
-
 import pandas as pd
 import numpy as np
+
+import udatetime
+from sources import GoogleWorksheet
+from datetime import datetime
 
 def check_all():
 
@@ -15,21 +17,22 @@ def check_all():
     # get working data from https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
     df = gs.load_dev_from_google()
 
+    current_time = udatetime.now_as_eastern()
+
     logger.info("==| Internal Consistency Check |==============================================================")
     for row in df.itertuples():
-        check_one(row)
+        check_one(row, current_time)
     logger.info("")
 
     logger.info("==| Previous Day Check |==============================================================")
 
     # get published data from https://covidtracking.com/api/states/daily
     #   this includes all previous dates
-    df_published = gs.load_published_from_api()
+    #df_published = gs.load_published_from_api()
 
 
 
-
-def check_one(row) -> bool:
+def check_one(row, current_time: datetime) -> bool:
 
     state = row.State
     #logger.info(f"check {state}")
@@ -41,6 +44,18 @@ def check_one(row) -> bool:
 
     errors = []
     warnings = []
+
+    # ===========================================
+    # check last update
+    updated_at = udatetime.naivedate_as_eastern(row.Last_Update.to_pydatetime())
+    
+    delta = current_time - updated_at
+    hours = delta.total_seconds() / (60.0 * 60)
+    if hours > 36.0:
+        errors.append(f"{state} hasn't been updated in {hours:.0f}  hours")
+    #elif hours > 18.0:
+    #    warnings.append(f"{state} hasn't been updated in {hours:.0f} hours")
+
 
     # ===========================================
     # simple consistency checks
