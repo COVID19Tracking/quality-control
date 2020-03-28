@@ -10,7 +10,7 @@ class ResultLog():
         if error != None:
             self.errors.append((location, error))
         if warning != None:
-            self.warnings.append((location, error))
+            self.warnings.append((location, warning))
 
     def print(self):
 
@@ -22,7 +22,7 @@ class ResultLog():
             for location, message in self.errors:                
                 print(f"{location}: {message}")
         if len(self.warnings) > 0:
-            print("=====| ERRORS |===========")
+            print("=====| WARNINGS |===========")
             for location, message in self.warnings:
                 print(f"{location}: {message}")
 

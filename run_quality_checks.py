@@ -15,7 +15,7 @@ def check_day(df) -> None:
 
     for row in df.itertuples():
 
-        state = row.State
+        state = row.state
         (error, warning) = checks.last_update(row)
         log.add_results(state, error, warning)
 
