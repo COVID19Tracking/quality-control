@@ -9,6 +9,16 @@ This is a repo for automated checks to the spreadsheet.
 It fetchs the current data and a few recent archives and checks
 that the numbers are internally consistent.
 
+## Running 
+
+1. Install requirements 
+
+        pip install -r requirements.txt
+
+2. Run existing checks
+
+        python run_quality_checks.py
+
 # Approach
 
 Each state is checked independently. First, we run through a list
