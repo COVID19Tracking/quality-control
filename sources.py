@@ -1,5 +1,7 @@
 from typing import List, Dict
 from loguru import logger
+import pandas as pd
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -55,13 +57,41 @@ class GoogleWorksheet():
         return rec["id"]
 
 
-    def read_values(self, sheet_id: str, cell_range: str) -> List:
+    def read_values(self, sheet_id: str, cell_range: str) -> List[List]:
+        " read results as a list of lists"
+        
         if self.trace: logger.info(f"read {cell_range}")
         result = self.sheets.values().get(spreadsheetId=sheet_id, range=cell_range).execute()
-        if self.trace: logger.info(f"  {result}")
+        #if self.trace: logger.info(f"  {result}")
 
         values = result.get('values', [])
         return values
+
+    def read_as_frame(self, sheet_id: str, cell_range: str) -> pd.DataFrame:
+        " read results as a data frame, first row is headers"
+        
+        values = self.read_values(sheet_id, cell_range)
+    
+        header = values[0]
+        print(f"header: {header}")
+        n_cols = len(header)
+
+        data = [[] for n in header]
+        for r in values[1:]:
+            n_vals = len(r)
+            if n_vals == 0: continue
+            if n_vals < n_cols:
+                logger.warning(f"fewer columns than expected ({n_cols})")
+                logger.warning(f"  {r}")
+            for i in range(n_vals):
+                data[i].append(r[i])
+            for i in range(n_vals, n_cols):
+                data[i].append('')    
+
+        xdict = {}
+        for n, vals in zip(header, data): xdict[n] = vals
+        return pd.DataFrame(xdict)
+
 
 # --- a simple test
 def main():
