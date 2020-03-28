@@ -109,7 +109,16 @@ class GoogleWorksheet():
         return pd.DataFrame(xdict)
 
     def load_published_from_api(self) -> pd.DataFrame:
-        return pd.read_json("https://covidtracking.com/api/states/daily")
+        df =  pd.read_json("https://covidtracking.com/api/states/daily")
+        df.fillna(0.0, inplace=True)
+        for c in ["positive", "negative", "pending", "hospitalized", "total", "death", "totalTestResults"]:
+            c2 = c + "Increase"
+            df[c] = df[c].astype(np.int)
+            if c2 in df.columns:
+                df[c2] = df[c2].astype(np.int)
+        print(df.columns)
+        print(df.dtypes)
+        exit(-1)
 
     def load_dev_from_google(self) -> pd.DataFrame:
         dev_id = self.get_sheet_id_by_name("dev")
