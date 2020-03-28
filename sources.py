@@ -1,9 +1,12 @@
 from typing import List, Dict
 from loguru import logger
 import pandas as pd
+import numpy as np
+import re
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 KEY_PATH = "credentials-scanner.json"
@@ -44,11 +47,11 @@ class GoogleWorksheet():
                 "id": "1lGINxyLFuTcCJgVc4NrnAgbvvt09k3OiRizfwZPZItw",
                 "url": "https://docs.google.com/document/d/1lGINxyLFuTcCJgVc4NrnAgbvvt09k3OiRizfwZPZItw/edit"
             },
-            "pubished": {
-                # not sure if this ID is right - Josh
-                "id": "2PACX-1vRwAqp96T9sYYq2-i7Tj0pvTf6XVHjDSMIKBdZHXiCGGdNC0ypEU9NbngS8mxea55JuCFuua1MUeOj5",
-                "url": "https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vRwAqp96T9sYYq2-i7Tj0pvTf6XVHjDSMIKBdZHXiCGGdNC0ypEU9NbngS8mxea55JuCFuua1MUeOj5/pubhtml"
-            }
+            # don't know how to get to the underlying sheet so using the API - Josh
+            #"published": {
+            #    "id": "i7Tj0pvTf6XVHjDSMIKBdZHXiCGGdNC0ypEU9NbngS8mxea55JuCFuua1MUeOj5",
+            #    "url": "https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vRwAqp96T9sYYq2-i7Tj0pvTf6XVHjDSMIKBdZHXiCGGdNC0ypEU9NbngS8mxea55JuCFuua1MUeOj5/pubhtml"
+            #}
         }
 
         rec = items.get(name)
@@ -67,17 +70,30 @@ class GoogleWorksheet():
         values = result.get('values', [])
         return values
 
-    def read_as_frame(self, sheet_id: str, cell_range: str) -> pd.DataFrame:
+    def read_as_frame(self, sheet_id: str, cell_range: str, header_rows = 1) -> pd.DataFrame:
         " read results as a data frame, first row is headers"
         
         values = self.read_values(sheet_id, cell_range)
     
         header = values[0]
-        print(f"header: {header}")
+        if header_rows == 2:
+            sub_header = values[1]
+            prefix = ""
+            for i in range(len(sub_header)): 
+                if i<len(header):
+                    if header[i].strip() != "": prefix = header[i].strip()  + " "
+                else:
+                    prefix = ""
+                sub_header[i] = prefix + sub_header[i].strip()  
+            header = sub_header
+        else:
+            for i in range(len(header)): header[i] = header[i].strip() 
+        #print(f"header: {header}")
+
         n_cols = len(header)
 
         data = [[] for n in header]
-        for r in values[1:]:
+        for r in values[header_rows:]:
             n_vals = len(r)
             if n_vals == 0: continue
             if n_vals < n_cols:
@@ -91,6 +107,24 @@ class GoogleWorksheet():
         xdict = {}
         for n, vals in zip(header, data): xdict[n] = vals
         return pd.DataFrame(xdict)
+
+    def load_published_from_api(self) -> pd.DataFrame:
+        return pd.read_json("https://covidtracking.com/api/states/daily")
+
+    def load_dev_from_google(self) -> pd.DataFrame:
+        dev_id = self.get_sheet_id_by_name("dev")
+        df = self.read_as_frame(dev_id, "Worksheet!G2:R60", header_rows=2)
+
+        columns = [x.replace("TESTING & OUTCOMES ", "") for x in df.columns]
+        columns[9] = "Ventilator " + columns[9]
+        columns = [x.replace(" ", "_") for x in columns]
+        df.columns = columns
+
+        for c in df.columns[1:]: 
+            df[c] = df[c].str.strip().replace("", "0").replace(re.compile(","), "")
+            df[c] = df[c].astype(np.int)
+        return df
+
 
 
 # --- a simple test
