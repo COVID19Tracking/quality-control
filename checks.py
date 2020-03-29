@@ -24,7 +24,7 @@ def last_update(row) -> (str, str):
     warning = None
 
     current_time = udatetime.now_as_eastern()
-    updated_at = udatetime.naivedate_as_eastern(row.lastUpdateEt.to_pydatetime())
+    updated_at = row.lastUpdateEt.to_pydatetime()
     delta = current_time - updated_at
     hours = delta.total_seconds() / (60.0 * 60)
 

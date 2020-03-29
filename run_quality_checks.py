@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 
 import udatetime
-from sources import GoogleWorksheet
+from data_source import DataSource
 from  result_log import ResultLog
 import checks
 
@@ -55,36 +55,33 @@ def check_timeseries(df: pd.DataFrame) -> None:
     log.print()
 
 
-def check_dev_sheet() -> None:
+def check_working_sheet() -> None:
     """
-    Check data quality within the dev google sheet:
+    Check unpublished results in the working google sheet
     https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
     """
 
-    logger.info("--| QUALITY CONTROL --- GOOGLE DEV SHEET |---------------------------------------------------")
+    logger.info("--| QUALITY CONTROL --- GOOGLE WORKING SHEET |---------------------------------------------------")
 
-    gs = GoogleWorksheet()
-    df = gs.load_dev_from_google()
-
-    check_day(df)
+    ds = DataSource()
+    check_day(ds.working)
 
 
 def check_api() -> None:
-    # get published data from https://covidtracking.com/api/states/daily
-    #   this includes all previous dates
+    """
+    Check published
+    """
+    
+    ds = DataSource()
 
+    logger.info("--| QUALITY CONTROL --- HISOTRY |-----------------------------------------------------------")
+    check_day(ds.history)
 
-    logger.info("--| QUALITY CONTROL --- STATE API |-----------------------------------------------------------")
-    current_df = pd.read_csv("https://covidtracking.com/api/states.csv").fillna(0)
-    current_df["lastUpdateEt"] = pd.to_datetime(current_df["lastUpdateEt"].str.replace(" ", "/2020 "), format="%m/%d/%Y %H:%M")
-    check_day(current_df)
-
-    logger.info("--| QUALITY CONTROL --- DAILY API |-----------------------------------------------------------")
-    daily_df = pd.read_csv("https://covidtracking.com/api/states/daily.csv")
-    check_timeseries(daily_df)
+    logger.info("--| QUALITY CONTROL --- CURRENT |-----------------------------------------------------------")
+    check_timeseries(ds.current)
 
 
 if __name__ == "__main__":
 
-    check_dev_sheet()
+    check_working_sheet()
     check_api()
