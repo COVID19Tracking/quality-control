@@ -72,7 +72,7 @@ class ResultLog():
             level[idx], location[idx], message[idx] = "ERROR", loc, msg
             idx += 1  
         for loc, msg in self._warnings:
-            level[idx], location[idx], message[idx] = "ERROR", loc, msg
+            level[idx], location[idx], message[idx] = "WARNING", loc, msg
             idx += 1  
         for loc, msg in self._infos:
             level[idx], location[idx], message[idx] = "INFO", loc, msg
@@ -96,10 +96,10 @@ class ResultLog():
         # want a css class per row
         #
         # # https://towardsdatascience.com/style-pandas-dataframe-like-a-master-6b02bf6468b0
-        # def row_class(r):
-        #     print("row: ", r)
-        #     return f"class: 'error'"
-        # result = df.style.apply(row_class, axis=1).render() 
+        #def row_class(r):
+        #     c = f"class: " + r.level.lower()
+        #     return [c,c,c]
+        #result = df.style.apply(row_class, axis=1).render() 
 
         result = df.to_html()
         return result
