@@ -55,10 +55,10 @@ def positives_rate(row, log: ResultLog):
 
     percent_pos = 100.0 * n_pos / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
-        if percent_pos > 20.0:
+        if percent_pos > 40.0 and n_pos > 20:
             log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
     else:
-        if percent_pos > 50.0:
+        if percent_pos > 80.0:
             log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
 
 def death_rate(row, log: ResultLog):
@@ -69,7 +69,7 @@ def death_rate(row, log: ResultLog):
 
     percent_deaths = 100.0 * n_deaths / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
-        if percent_deaths > 2.0:
+        if percent_deaths > 5.0:
             log.error(row.state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
     else:
         if percent_deaths > 10.0:
@@ -129,7 +129,10 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, offset=0):
         if val < IGNORE_THRESHOLDS[c]: continue
 
         if val == prev_val:
-            log.error(row.state, f"{c} value ({val:,}) is same as prior value ({prev_val:,})")
+            if prev_val > 20:
+                log.error(row.state, f"{c} value ({val:,}) is same as prior value ({prev_val:,})")
+            else:
+                log.warning(row.state, f"{c} value ({val:,}) is same as prior value ({prev_val:,})")
             continue
 
         p_observed = 100.0 * val / prev_val - 100.0
