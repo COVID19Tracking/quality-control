@@ -1,6 +1,7 @@
 loguru
 pandas
 numpy
+argparse
 
 # for google sheets
 google-api-python-client
