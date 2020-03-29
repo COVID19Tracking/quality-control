@@ -37,7 +37,7 @@ class DataSource:
 
     @property
     def history(self) -> pd.DataFrame:
-        " the history dataset"
+        " the daily history dataset"
         if self._history is None: 
             self._history = self.load_history()
         return self._history
@@ -86,8 +86,8 @@ class DataSource:
 
         return df
         
-    def load_history(self) -> pd.DataFrame:
-        """ load the history from the API """
+    def load_current(self) -> pd.DataFrame:
+        """ load the current values from the API """
 
         df = pd.read_csv("https://covidtracking.com/api/states.csv").fillna(0)
         df["lastUpdateEt"] = pd.to_datetime(df["lastUpdateEt"].str.replace(" ", "/2020 "), format="%m/%d/%Y %H:%M") \
@@ -108,8 +108,8 @@ class DataSource:
             df[c] = df[c].astype(np.int)
         return df
 
-    def load_current(self) -> pd.DataFrame:
-        """ load the today's values from the API """
+    def load_history(self) -> pd.DataFrame:
+        """ load daily values over time from the API """
         
         df = pd.read_csv("https://covidtracking.com/api/states/daily.csv")
 
