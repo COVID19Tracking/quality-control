@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 import pytz
 import re
 import os
+import pandas as pd
 
 eastern_tz = pytz.timezone("US/Eastern")
 
@@ -31,12 +32,25 @@ def now_as_eastern() -> datetime:
     return xnow
 
 def naivedate_as_eastern(dt: datetime) -> datetime:
+    """ convert a python date into as a tz-aware datetime
+    """
     if dt == None: return None
     if type(dt) != datetime:
         raise Exception(f"type ({type(dt)}) is not datetime")
     if dt.tzname() != None:
         raise Exception(f"value ({dt}) is not a naive datetime")
     return dt.astimezone(eastern_tz)
+
+def pandas_timestamp_as_eastern(dt: pd.Timestamp) -> pd.Timestamp:
+    """ convert a pandas date as a tz-aware datetime
+    """
+    if dt == None: return None
+    if type(dt) != pd.Timestamp:
+        raise Exception(f"type ({type(dt)}) is not pandas.TimeStamp")
+    if dt.tzname() != None:
+        raise Exception(f"value ({dt}) is not a naive timestamp")
+    return dt.tz_localize(eastern_tz)
+
 
 def now_as_local() -> datetime:
     """ get current time as a tz-aware datetime
