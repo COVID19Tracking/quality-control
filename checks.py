@@ -90,6 +90,48 @@ def pendings_rate(row, log: ResultLog):
         if percent_pending > 80.0:
             log.warning(row.state, f"Too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
 
+IGNORE_THRESHOLDS = {
+    "positive": 20,
+    "negative": 80,
+    "death": 5,
+    "total": 100
+}
+EXPECTED_PERCENT_THRESHOLDS = {
+    "positive": (5,30),
+    "negative": (5,40),
+    "death": (0,5),
+    "total": (5,40)
+}
+
+def increasing_values(row, df: pd.DataFrame, log: ResultLog, offset=0):
+    """Check that new values more than previous values
+    
+    df contains the historical values (newest first).  offset controls how many days to look back.
+    """ 
+    
+    dict_row = row._asdict()
+
+    for c in ["positive", "negative", "death", "total"]:
+        val = dict_row[c]
+        prev_val = df[c].values[offset]
+
+        if val < prev_val:
+            log.error(row.state, f"{c} value ({val:,}) is less than prior value ({prev_val:,})")
+        
+        # allow value to be the same if below a threshold 
+        if val < IGNORE_THRESHOLDS[c]: continue 
+
+        if val == prev_val:
+            log.error(row.state, f"{c} value ({val:,}) is same as prior value ({prev_val:,})")
+            continue
+
+        p_observed = 100.0 * val / prev_val - 100.0
+
+        #TODO: estimate expected increase from recent history
+        p_min, p_max = EXPECTED_PERCENT_THRESHOLDS[c]
+        if p_observed < p_min or p_observed > p_max:
+            log.warning(row.state, f"{c} value ({val:,}) is a {p_observed:.1f}% increase, expected: {p_min:.1f} to {p_max:.1f}%")
+        
 
 # ----------------------------------------------------------------
 
