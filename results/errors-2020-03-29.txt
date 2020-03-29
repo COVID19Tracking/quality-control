@@ -1,27 +1,14 @@
 =====| ERROR |===========
 AL: negative value (4,184) is same as prior value (4,184)
 AS: Last Updated (col T) hasn't been updated in 65  hours
-CA: Too many positive 22% (positive=5,710, total=26,378)
 CA: negative value (20,549) is same as prior value (20,549)
 DE: Too many positive 85% (positive=232, total=274)
-DE: Too many deaths 2% (positive=6, total=274)
-GA: Too many positive 21% (positive=2,651, total=12,644)
 ME: negative value (3,394) is same as prior value (3,394)
-MI: Too many positive 31% (positive=5,486, total=17,511)
 MO: positive value (838) is same as prior value (838)
-MO: death value (10) is same as prior value (10)
 MP: Too many positive 100% (positive=2, total=2)
-MS: Too many positive 23% (positive=758, total=3,332)
 MS: negative value (2,560) is same as prior value (2,560)
-NJ: Too many positive 37% (positive=13,386, total=35,763)
-NY: Too many positive 34% (positive=59,513, total=173,325)
 OH: negative value (19,012) is same as prior value (19,012)
-OK: Too many positive 26% (positive=429, total=1,650)
-OR: death value (13) is same as prior value (13)
-SC: Too many positive 20% (positive=774, total=3,805)
 TX: negative value (23,208) is same as prior value (23,208)
 VI: total value (183) is same as prior value (183)
-VT: death value (12) is same as prior value (12)
 WA: Last Updated (col T) hasn't been updated in 38  hours
-WI: death value (13) is same as prior value (13)
 WV: Last Updated (col T) hasn't been updated in 41  hours
