@@ -1,27 +1,33 @@
-import pandas as pd
-import pdb
+#
+# Individual Check Routines
+#
+#   Each routine checks a specific aspect of a single state
+#
+#   If any issues are found, the check routine calls the log to report it.
+#   The three log methods are info/warning/error.
+#
 
+#import pdb
+import pandas as pd
 import udatetime
 from datetime import datetime
 
-def total(row) -> (str, str):
-    """Check that pendings, positive, and negative sum to the reported total"""
+from result_log import ResultLog
 
-    error = None
-    warning = None
+
+def total(row, log: ResultLog):
+    """Check that pendings, positive, and negative sum to the reported total"""
 
     n_pos, n_neg, n_pending, n_tot = \
         row.positive, row.negative, row.pending, row.total
 
     n_diff = n_tot - (n_pos + n_neg + n_pending)
     if n_diff != 0:
-        error = f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}"
-    return (error, warning)
+        log.error(row.state, f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
 
-def last_update(row) -> (str, str):
+
+def last_update(row, log: ResultLog):
     """Check that the data has been updated within a reasonable timeframe"""
-    error = None
-    warning = None
 
     current_time = udatetime.now_as_eastern()
     updated_at = row.lastUpdateEt.to_pydatetime()
@@ -29,17 +35,13 @@ def last_update(row) -> (str, str):
     hours = delta.total_seconds() / (60.0 * 60)
 
     if hours > 36.0:
-        error = f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours"
+        log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
     #elif hours > 18.0:
-    #    warning = f"{state} hasn't been updated in {hours:.0f} hours"
+    #   log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
 
-    return (error, warning)
 
-def positives_rate(row) -> (str, str):
+def positives_rate(row, log: ResultLog):
     """Check that positives compose <20% test results"""
-
-    error = None
-    warning = None
 
     n_pos, n_neg, n_deaths = row.positive, row.negative, row.death
     n_tot = n_pos + n_neg + n_deaths
@@ -47,18 +49,13 @@ def positives_rate(row) -> (str, str):
     percent_pos = 100.0 * n_pos / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
         if percent_pos > 20.0:
-            error = f"{row.state} has too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})"
+            log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
     else:
         if percent_pos > 50.0:
-            error = f"{row.state} has too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})"
-
-    return (error, warning)
-
-def death_rate(row) -> (str, str):
+            log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
+    
+def death_rate(row, log: ResultLog):
     """Check that deaths are <2% of test results"""
-
-    error = None
-    warning = None
 
     n_pos, n_neg, n_deaths = row.positive, row.negative, row.death
     n_tot = n_pos + n_neg + n_deaths
@@ -66,29 +63,21 @@ def death_rate(row) -> (str, str):
     percent_deaths = 100.0 * n_deaths / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
         if percent_deaths > 2.0:
-            error = f"{row.state} has too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})"
+            log.error(row.state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
     else:
         if percent_deaths > 10.0:
-            error = f"{row.state} has too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})"
+            log.error(row.state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
 
-    return (error, warning)
 
-def less_recovered_than_positive(row) -> (str, str):
+def less_recovered_than_positive(row, log: ResultLog):
     """Check that we don't have more recovered than positive"""
 
-    error = None
-    warning = None
-
     if row.recovered > row.positive:
-        error = f"{row.state} has more recovered than positive (recovered={row.recovered:,}, positive={row.positive:,})"
+        log.error(row.state, f"More recovered than positive (recovered={row.recovered:,}, positive={row.positive:,})")
 
-    return (error, warning)
 
-def pendings_rate(row) -> (str, str):
+def pendings_rate(row, log: ResultLog):
     """Check that pendings are not more than 20% of total"""
-
-    error = None
-    warning = None
 
     n_pos, n_neg, n_pending, n_deaths = row.positive, row.negative, row.pending, row.death
     n_tot = n_pos + n_neg + n_deaths
@@ -96,22 +85,27 @@ def pendings_rate(row) -> (str, str):
 
     if n_tot > 1000:
         if percent_pending > 20.0:
-            warning = f"{row.state} has too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})"
+            log.warning(row.state, f"Too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
     else:
         if percent_pending > 80.0:
-            warning = f"{row.state} has too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})"
+            log.warning(row.state, f"Too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
 
-    return (error, warning)
 
-def monotonically_increasing(df) -> (str, str):
-    """Check that timeseries values are monotonically increasing"""
+# ----------------------------------------------------------------
 
-    error = None
-    warning = None
+def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
+    """Check that timeseries values are monotonically increasing
+    
+    Input is expected to be the values for a single state
+    """
 
     columns_to_check = ["positive", "negative","hospitalized", "death"]
-    state = df["state"].values[0]
 
+    state = df["state"].min()
+    if state != df["state"].max():
+        raise Exception("Expeted input to be for a single state")
+
+    # TODO: don't group on state -- this is already filtered to a single state
     df = df.sort_values(["state", "date"], ascending=True)
     df_lagged = df.groupby("state")[columns_to_check] \
         .shift(1) \
@@ -125,9 +119,4 @@ def monotonically_increasing(df) -> (str, str):
             error_dates = df_comparison.loc[(df_comparison[f"{col}_lag"] > df_comparison[col])]["date"]
             error_dates_str = error_dates.astype(str).str.cat(sep=", ")
 
-            if error is None:
-                error = f"{state} has {col} values decreased from the previous day (on {error_dates_str})"
-            else:
-                error = f"{error}\n{state} has {col} values decreased from the previous day (on {error_dates_str})"
-
-    return (error, warning)
+            log.error(state, f"{col} values decreased from the previous day (on {error_dates_str})")

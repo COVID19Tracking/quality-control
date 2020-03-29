@@ -3,30 +3,46 @@
 class ResultLog():
 
     def __init__(self):
-        self.errors = []
-        self.warnings = []
+        self._infos = []
+        self._warnings = []
+        self._errors = []
 
-    def add_results(self, location: str, error: str, warning: str) -> None:
-        if error is not None:
-            self.errors.append((location, error))
-        if warning is not None:
-            self.warnings.append((location, warning))
+    def info(self, location: str, message: str) -> None:
+        if message is None: raise Exception("Missing message")
+        self._infos.append((location, message))
+
+    def warning(self, location: str, message: str) -> None:
+        if message is None: raise Exception("Missing message")
+        self._warnings.append((location, message))
+
+    def error(self, location: str, message: str) -> None:
+        if message is None: raise Exception("Missing message")
+        self._errors.append((location, message))
+
+    # -----
 
     def print(self):
 
         print("")
-        if len(self.errors) == 0 and len(self.warnings) == 0:
-            print("No Errors or Warnings")
 
-        if len(self.errors) > 0:
-            print("=====| ERRORS |===========")
-            for location, message in self.errors:
+        if len(self._errors) == 0 and len(self._warnings) == 0 and len(self._infos) == 0:
+            print("[No Messages]")
+
+        if len(self._errors) > 0:
+            print("=====| ERROR |===========")
+            for location, message in self._errors:
                 print(f"{location}: {message}")
 
-        if len(self.warnings) > 0:
-            print("\n=====| WARNINGS |===========")
-            for location, message in self.warnings:
+        if len(self._warnings) > 0:
+            print("\n=====| WARNING |===========")
+            for location, message in self._warnings:
                 print(f"{location}: {message}")
+
+        if len(self._infos) > 0:
+            print("\n=====| INFO |===========")
+            for location, message in self._infos:
+                print(f"{location}: {message}")
+
         print("")
 
 
