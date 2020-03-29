@@ -1,3 +1,7 @@
+#
+# Manages getting data out of Google sheets
+#
+
 from typing import List, Dict
 from loguru import logger
 import pandas as pd
@@ -7,11 +11,10 @@ import re
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 KEY_PATH = "credentials-scanner.json"
 
-class GoogleWorksheet():
+class WorksheetWrapper():
 
     def __init__(self, trace= True):
         logger.info("load credentials")
@@ -109,49 +112,3 @@ class GoogleWorksheet():
         for n, vals in zip(header, data): xdict[n] = vals
         return pd.DataFrame(xdict)
 
-
-    def load_dev_from_google(self) -> pd.DataFrame:
-        """Load the dev data from google sheets"""
-
-        # make dev columns match api columns so quality
-        # checks run with both inputs
-        column_map = {
-            'TESTING & OUTCOMES State':'state',
-            'TESTING & OUTCOMES Positive':'positive',
-            'TESTING & OUTCOMES Negative':'negative',
-            'TESTING & OUTCOMES Pending':'pending',
-            'Hospitalized Current':'hospitalized',
-            'Hospitalized Cumulative':'hospitalizedCumulative',
-            'ICU Current':'icu',
-            'ICU Cumulative':'icuCumulative',
-            'Ventilator Current':'ventilator',
-            'Ventilator Cumulative':'ventilatorCumulative',
-            'Ventilator Recovered':'recovered', # api misreads from sheet
-            'Ventilator Deaths':'death', # api misreads from sheet
-            'CALCULATED Total':'total',
-            'Last Update (ET)':'lastUpdateEt'
-        }
-
-        dev_id = self.get_sheet_id_by_name("dev")
-        df = self.read_as_frame(dev_id, "Worksheet!G2:T60", header_rows=2)
-        df.columns = [column_map[c] for c in df.columns.values]
-
-        for c in df.columns[1:-1]:
-            df[c] = df[c].str.strip().replace("", "0").replace(re.compile(","), "")
-            df[c] = df[c].astype(np.int)
-
-        df["lastUpdateEt"] = pd.to_datetime(df["lastUpdateEt"].str.replace(" ", "/2020 "), format="%m/%d/%Y %H:%M")
-
-        return df
-
-
-# --- a simple test
-def main():
-
-    gs = GoogleWorksheet(trace=True)
-    id = gs.get_sheet_id_by_name("dev")
-    values = gs.read_values(id, 'Worksheet!G3:L4')
-    print(f"  {values}")
-
-if __name__ == '__main__':
-    main()
