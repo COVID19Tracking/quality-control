@@ -173,14 +173,17 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 def _exp_curve(x, a, b):
     return a * np.exp(b * x)
 
-def _get_distribution_fit(x: pd.Series, y: pd.Series):
+def _linear_fit(x, m, b):
+    return m*x + b
+
+def _get_distribution_fit(x: pd.Series, y: pd.Series, dist_func):
 
     np.random.seed(1729)
 
     x = np.array(x.values, dtype=float)
     y = np.array(y.values, dtype=float)
 
-    popt, pcov = curve_fit(_exp_curve, x, y, p0=(4, 0.1))
+    popt, pcov = curve_fit(dist_func, x, y, p0=(4, 0.1))
     return popt
 
 def expected_increase(df: pd.DataFrame, log:ResultLog):
@@ -199,27 +202,33 @@ def expected_increase(df: pd.DataFrame, log:ResultLog):
         .reset_index(drop=True)
         .rename_axis('index')
         .reset_index())
-    to_fit = cases_df[:-1]
+
+    to_fit_exp = cases_df[:-1]
+    to_fit_linear = cases_df[-5:-1]
     to_forecast = cases_df.tail(1)
 
-    fitted_dist = _get_distribution_fit(to_fit["index"], to_fit["positive"])
+    fitted_linear = _get_distribution_fit(to_fit_linear["index"], to_fit_linear["positive"], _linear_fit)
+    fitted_exp = _get_distribution_fit(to_fit_exp["index"], to_fit_exp["positive"], _exp_curve)
 
     state = df["state"].values[0]
     date = _format_date(to_forecast["date"].values[0].astype(str))
     actual_value = to_forecast["positive"].values[0]
-    expected_value = _exp_curve(to_forecast["index"].values[0], *fitted_dist).round().astype(int)
+    expected_exp = _exp_curve(to_forecast["index"].values[0], *fitted_exp).round().astype(int)
+    expected_linear = _linear_fit(to_forecast["index"].values[0], *fitted_linear).round().astype(int)
 
     # Plot case growth (expected and actuals)
     matplotlib.style.use('ggplot')
 
     plt.figure(figsize=(9,15))
     ax = cases_df.plot.bar(x="index", y="positive", color="gray", alpha=.7, label="actual positives growth")
-    plt.plot(cases_df["index"], _exp_curve(cases_df["index"], *fitted_dist), color="red", label="predicted positives growth")
+    plt.plot(cases_df["index"], _exp_curve(cases_df["index"], *fitted_exp), color="red", label="exponential fit")
+    plt.plot(cases_df["index"], _linear_fit(cases_df["index"], *fitted_linear), color="black", label="projected growth")
 
-    plt.title(f"{state} ({date}): Expected {expected_value}, got {actual_value}")
+    plt.title(f"{state} ({date}): Expected {expected_linear}, got {actual_value}")
     ax.set_xticklabels(cases_df["date"].apply(lambda d: _format_date(str(d))), rotation=90)
     plt.xlabel("Day")
     plt.ylabel("Number of positive cases")
+    plt.ylim(0,max(cases_df["positive"].max(), expected_exp, expected_linear)+10)
     plt.legend()
 
     # TODO: Might want to save these to s3?
@@ -227,16 +236,11 @@ def expected_increase(df: pd.DataFrame, log:ResultLog):
     plt.savefig(f"./images/predicted_positives_{state}_{date}.png", dpi=250, bbox_inches = "tight")
 
     # Log errors and warning
-    if (actual_value < expected_value * .8):
-        log.error(state, f"Unexpected drop in positive cases (expected {expected_value}, got {actual_value} for {date}))")
-    elif (actual_value < expected_value * .9):
-        log.warning(state, f"Unexpected drop in positive cases (expected {expected_value}, got {actual_value} for {date}))")
+    if not (expected_linear*.95 <= actual_value <=  expected_exp*1.1):
+        direction = "increase"
+        if actual_value < expected_linear:
+            direction = "drop"
 
-    if (actual_value > expected_value * 1.2):
-        log.error(state, f"Unexpected increase in positive cases (expected {expected_value}, got {actual_value} for {date}))")
-    elif (actual_value > expected_value * 1.1):
-        log.warning(state, f"Unexpected increase in positive cases (expected {expected_value}, got {actual_value} for {date}))")
-
-
+        log.error(state, f"unexpected {direction} in positive cases (expected between {expected_linear} and {expected_exp}, got {actual_value} for {date}))")
 
 
