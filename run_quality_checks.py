@@ -12,7 +12,7 @@ from data_source import DataSource
 from  result_log import ResultLog
 import checks
 
-def check_working(ds: DataSource) -> None:
+def check_working(ds: DataSource) -> ResultLog:
     """
     Check unpublished results in the working google sheet
     https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
@@ -31,17 +31,17 @@ def check_working(ds: DataSource) -> None:
         df_history = ds.history[ds.history.state == row.state]
         checks.increasing_values(row, df_history, log, offset=0)
 
-    log.print()
+    return log
 
 
-def check_current(ds: DataSource) -> None:
+def check_current(ds: DataSource) -> ResultLog:
     """
     Check the current published results
     """
 
     log = ResultLog()
 
-    for row in ds.working.itertuples():
+    for row in ds.current.itertuples():
         checks.total(row, log)
         checks.last_update(row, log)
         checks.positives_rate(row, log)
@@ -52,13 +52,15 @@ def check_current(ds: DataSource) -> None:
 
         checks.increasing_values(row, df_history, log, offset=1)
 
-    log.print()
+    return log
 
 
-def check_history(df: pd.DataFrame) -> None:
+def check_history(ds: DataSource) -> ResultLog:
     """
     Check the history
     """
+
+    df = ds.history
 
     log = ResultLog()
 
@@ -66,8 +68,7 @@ def check_history(df: pd.DataFrame) -> None:
 
         state_df = df.loc[df["state"] == state]
         checks.monotonically_increasing(state_df, log)
-
-    log.print()
+    return log
 
 def load_args_parser() -> ArgumentParser:
     " load arguments parser "
@@ -101,22 +102,31 @@ def main() -> None:
     args = parser.parse_args(sys.argv)
 
     if not args.check_working and not args.check_daily and not args.check_history:
-        logger.info("  [default to working only]")
+        logger.info("  [default to all sources]")
         args.check_working = True
+        args.check_daily = True
+        args.check_history = True
+
+    if len(args.state) != 0:
+        logger.error("  [states filter not implemented]")
 
     ds = DataSource()
 
     if args.check_working:
         logger.info("--| QUALITY CONTROL --- GOOGLE WORKING SHEET |---------------------------------------------------")
-        check_working(ds)
+        log = check_working(ds)
+        log.print()
     
     if args.check_daily:
         logger.info("--| QUALITY CONTROL --- CURRENT |-----------------------------------------------------------")
-        check_current(ds.history)
+        log = check_current(ds)
+        log.print()
+
 
     if args.check_history:
         logger.info("--| QUALITY CONTROL --- HISTORY |-----------------------------------------------------------")
-        check_history(ds.current)
+        log = check_history(ds)
+        log.print()
 
 
 if __name__ == "__main__":
