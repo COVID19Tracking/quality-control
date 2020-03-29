@@ -68,6 +68,7 @@ def check_history(ds: DataSource) -> ResultLog:
 
         state_df = df.loc[df["state"] == state]
         checks.monotonically_increasing(state_df, log)
+        checks.expected_increase(state_df, log)
     return log
 
 def load_args_parser() -> ArgumentParser:
@@ -83,15 +84,15 @@ def load_args_parser() -> ArgumentParser:
     parser.add_argument(
         '-w', '--working', dest='check_working', action='store_true', default=False,
         help='check the working results (only)')
-    
+
     parser.add_argument(
         '-d', '--daily', dest='check_daily', action='store_true', default=False,
         help='check the daily results (only)')
-    
+
     parser.add_argument(
         '-x', '--history', dest='check_history', action='store_true', default=False,
         help='check the history (only)')
-    
+
     return parser
 
 def main() -> None:
@@ -116,7 +117,7 @@ def main() -> None:
         logger.info("--| QUALITY CONTROL --- GOOGLE WORKING SHEET |---------------------------------------------------")
         log = check_working(ds)
         log.print()
-    
+
     if args.check_daily:
         logger.info("--| QUALITY CONTROL --- CURRENT |-----------------------------------------------------------")
         log = check_current(ds)

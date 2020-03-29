@@ -7,13 +7,20 @@
 #   The three log methods are info/warning/error.
 #
 
-#import pdb
-import pandas as pd
-import udatetime
 from datetime import datetime
+import pandas as pd
+import numpy as np
+from scipy.optimize import curve_fit
+import matplotlib
+import matplotlib.pyplot as plt
+import warnings
 
+import udatetime
 from result_log import ResultLog
 
+def _format_date(date:str) -> str:
+    """return YYYYmmdd as YYYY-mm-dd"""
+    return f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
 def total(row, log: ResultLog):
     """Check that pendings, positive, and negative sum to the reported total"""
@@ -53,7 +60,7 @@ def positives_rate(row, log: ResultLog):
     else:
         if percent_pos > 50.0:
             log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
-    
+
 def death_rate(row, log: ResultLog):
     """Check that deaths are <2% of test results"""
 
@@ -105,10 +112,10 @@ EXPECTED_PERCENT_THRESHOLDS = {
 
 def increasing_values(row, df: pd.DataFrame, log: ResultLog, offset=0):
     """Check that new values more than previous values
-    
+
     df contains the historical values (newest first).  offset controls how many days to look back.
-    """ 
-    
+    """
+
     dict_row = row._asdict()
 
     for c in ["positive", "negative", "death", "total"]:
@@ -117,9 +124,9 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, offset=0):
 
         if val < prev_val:
             log.error(row.state, f"{c} value ({val:,}) is less than prior value ({prev_val:,})")
-        
-        # allow value to be the same if below a threshold 
-        if val < IGNORE_THRESHOLDS[c]: continue 
+
+        # allow value to be the same if below a threshold
+        if val < IGNORE_THRESHOLDS[c]: continue
 
         if val == prev_val:
             log.error(row.state, f"{c} value ({val:,}) is same as prior value ({prev_val:,})")
@@ -131,13 +138,13 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, offset=0):
         p_min, p_max = EXPECTED_PERCENT_THRESHOLDS[c]
         if p_observed < p_min or p_observed > p_max:
             log.warning(row.state, f"{c} value ({val:,}) is a {p_observed:.1f}% increase, expected: {p_min:.1f} to {p_max:.1f}%")
-        
+
 
 # ----------------------------------------------------------------
 
 def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
     """Check that timeseries values are monotonically increasing
-    
+
     Input is expected to be the values for a single state
     """
 
@@ -145,7 +152,7 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 
     state = df["state"].min()
     if state != df["state"].max():
-        raise Exception("Expeted input to be for a single state")
+        raise Exception("Expected input to be for a single state")
 
     # TODO: don't group on state -- this is already filtered to a single state
     df = df.sort_values(["state", "date"], ascending=True)
@@ -162,3 +169,74 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
             error_dates_str = error_dates.astype(str).str.cat(sep=", ")
 
             log.error(state, f"{col} values decreased from the previous day (on {error_dates_str})")
+
+def _exp_curve(x, a, b):
+    return a * np.exp(b * x)
+
+def _get_distribution_fit(x: pd.Series, y: pd.Series):
+
+    np.random.seed(1729)
+
+    x = np.array(x.values, dtype=float)
+    y = np.array(y.values, dtype=float)
+
+    popt, pcov = curve_fit(_exp_curve, x, y, p0=(4, 0.1))
+    return popt
+
+def expected_increase(df: pd.DataFrame, log:ResultLog):
+    """
+    Fit state-level timeseries data to an exponential curve to
+    Get expected vs actual case increase
+
+    TODO: Eventually these curves will NOT be exp (perhaps logistic?)
+          Useful to know which curves have been "leveled" but from a
+          data quality persepctive, this check would become annoying
+    """
+    warnings.filterwarnings('ignore')
+
+    cases_df = (df
+        .sort_values("date", ascending=True)
+        .reset_index(drop=True)
+        .rename_axis('index')
+        .reset_index())
+    to_fit = cases_df[:-1]
+    to_forecast = cases_df.tail(1)
+
+    fitted_dist = _get_distribution_fit(to_fit["index"], to_fit["positive"])
+
+    state = df["state"].values[0]
+    date = _format_date(to_forecast["date"].values[0].astype(str))
+    actual_value = to_forecast["positive"].values[0]
+    expected_value = _exp_curve(to_forecast["index"].values[0], *fitted_dist).round().astype(int)
+
+    # Plot case growth (expected and actuals)
+    matplotlib.style.use('ggplot')
+
+    plt.figure(figsize=(9,15))
+    ax = cases_df.plot.bar(x="index", y="positive", color="gray", alpha=.7, label="actual positives growth")
+    plt.plot(cases_df["index"], _exp_curve(cases_df["index"], *fitted_dist), color="red", label="predicted positives growth")
+
+    plt.title(f"{state} ({date}): Expected {expected_value}, got {actual_value}")
+    ax.set_xticklabels(cases_df["date"].apply(lambda d: _format_date(str(d))), rotation=90)
+    plt.xlabel("Day")
+    plt.ylabel("Number of positive cases")
+    plt.legend()
+
+    # TODO: Might want to save these to s3?
+    # This write-to-file step adds ~1 sec of runtime / state
+    plt.savefig(f"./images/predicted_positives_{state}_{date}.png", dpi=250, bbox_inches = "tight")
+
+    # Log errors and warning
+    if (actual_value < expected_value * .8):
+        log.error(state, f"Unexpected drop in positive cases (expected {expected_value}, got {actual_value} for {date}))")
+    elif (actual_value < expected_value * .9):
+        log.warning(state, f"Unexpected drop in positive cases (expected {expected_value}, got {actual_value} for {date}))")
+
+    if (actual_value > expected_value * 1.2):
+        log.error(state, f"Unexpected increase in positive cases (expected {expected_value}, got {actual_value} for {date}))")
+    elif (actual_value > expected_value * 1.1):
+        log.warning(state, f"Unexpected increase in positive cases (expected {expected_value}, got {actual_value} for {date}))")
+
+
+
+

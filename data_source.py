@@ -31,21 +31,21 @@ class DataSource:
     @property
     def working(self) -> pd.DataFrame:
         " the working dataset"
-        if self._working is None: 
+        if self._working is None:
             self._working = self.load_working()
         return self._working
 
     @property
     def history(self) -> pd.DataFrame:
         " the daily history dataset"
-        if self._history is None: 
+        if self._history is None:
             self._history = self.load_history()
         return self._history
 
     @property
     def current(self) -> pd.DataFrame:
         " the today's dataset"
-        if self._current is None: 
+        if self._current is None:
             self._current = self.load_current()
         return self._current
 
@@ -85,7 +85,7 @@ class DataSource:
             .apply(udatetime.pandas_timestamp_as_eastern)
 
         return df
-        
+
     def load_current(self) -> pd.DataFrame:
         """ load the current values from the API """
 
@@ -110,7 +110,7 @@ class DataSource:
 
     def load_history(self) -> pd.DataFrame:
         """ load daily values over time from the API """
-        
+
         df = pd.read_csv("https://covidtracking.com/api/states/daily.csv")
 
         df.fillna(0.0, inplace=True)
@@ -124,7 +124,7 @@ class DataSource:
         df["dateChecked"] = pd.to_datetime(df["dateChecked"])
         return df
 
-# ------------------------------------------------------------ 
+# ------------------------------------------------------------
 
 # --- simple tests
 def main():
