@@ -1,17 +1,18 @@
-from loguru import logger
 import pandas as pd
-import numpy as np
+import pdb
 
 import udatetime
 from datetime import datetime
 
 def total(row) -> (str, str):
+    """Check that pendings, positive, and negative sum to the reported total"""
+
     error = None
     warning = None
 
     n_pos, n_neg, n_pending, n_tot = \
         row.positive, row.negative, row.pending, row.total
-    
+
     n_diff = n_tot - (n_pos + n_neg + n_pending)
     if n_diff != 0:
         error = f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}"
@@ -99,5 +100,34 @@ def pendings_rate(row) -> (str, str):
     else:
         if percent_pending > 80.0:
             warning = f"{row.state} has too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})"
+
+    return (error, warning)
+
+def monotonically_increasing(df) -> (str, str):
+    """Check that timeseries values are monotonically increasing"""
+
+    error = None
+    warning = None
+
+    columns_to_check = ["positive", "negative","hospitalized", "death"]
+    state = df["state"].values[0]
+
+    df = df.sort_values(["state", "date"], ascending=True)
+    df_lagged = df.groupby("state")[columns_to_check] \
+        .shift(1) \
+        .rename(columns=lambda c: c+"_lag")
+
+    df_comparison = df.merge(df_lagged, left_index=True, right_index=True, how="left")
+
+    # check that all the counts are >= the previous day
+    for col in columns_to_check:
+        if (df_comparison[f"{col}_lag"] > df_comparison[col]).any():
+            error_dates = df_comparison.loc[(df_comparison[f"{col}_lag"] > df_comparison[col])]["date"]
+            error_dates_str = error_dates.astype(str).str.cat(sep=", ")
+
+            if error is None:
+                error = f"{state} has {col} values decreased from the previous day (on {error_dates_str})"
+            else:
+                error = f"{error}\n{state} has {col} values decreased from the previous day (on {error_dates_str})"
 
     return (error, warning)

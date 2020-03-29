@@ -7,9 +7,9 @@ class ResultLog():
         self.warnings = []
 
     def add_results(self, location: str, error: str, warning: str) -> None:
-        if error != None:
+        if error is not None:
             self.errors.append((location, error))
-        if warning != None:
+        if warning is not None:
             self.warnings.append((location, warning))
 
     def print(self):
@@ -20,10 +20,11 @@ class ResultLog():
 
         if len(self.errors) > 0:
             print("=====| ERRORS |===========")
-            for location, message in self.errors:                
+            for location, message in self.errors:
                 print(f"{location}: {message}")
+
         if len(self.warnings) > 0:
-            print("=====| WARNINGS |===========")
+            print("\n=====| WARNINGS |===========")
             for location, message in self.warnings:
                 print(f"{location}: {message}")
         print("")
