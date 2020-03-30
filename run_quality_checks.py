@@ -28,6 +28,8 @@ def check_working(ds: DataSource) -> ResultLog:
     for row in ds.working.itertuples():
         checks.total(row, log)
         checks.last_update(row, log)
+        checks.last_checked(row, log)
+        checks.checkers_initials(row, log)
         checks.positives_rate(row, log)
         checks.death_rate(row, log)
         checks.less_recovered_than_positive(row, log)

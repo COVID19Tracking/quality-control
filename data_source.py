@@ -69,21 +69,50 @@ class DataSource:
             'Ventilator Recovered':'recovered', # api misreads from sheet
             'Ventilator Deaths':'death', # api misreads from sheet
             'CALCULATED Total':'total',
-            'Last Update (ET)':'lastUpdateEt'
+            'CALCULATED Last Update (ET)':'lastUpdateEt',
+            'CHECKER METADATA Last Check (ET)':'lastCheckEt',
+            'Checker':'checker',
+            'Double Checker':'doubleChecker'
         }
 
         gs = WorksheetWrapper()
         dev_id = gs.get_sheet_id_by_name("dev")
-        df = gs.read_as_frame(dev_id, "Worksheet!G2:T60", header_rows=2)
-        df.columns = [column_map[c] for c in df.columns.values]
+        df = gs.read_as_frame(dev_id, "Worksheet!G2:W60", header_rows=2)
 
-        for c in df.columns[1:-1]:
+        # check names and rename/suppress columns
+        names = []
+        for n in df.columns.values:
+            n2 = column_map.get(n)
+            if n2 == None:
+                logger.warning(f"  Unexpected column: {n} in google sheet")
+            if n2 == '': 
+                del df[n]
+            else:
+                names.append(n2)
+
+        df.columns = names
+
+        idx = df.columns.get_loc("lastUpdateEt")
+
+        for c in df.columns[1:idx]:
             df[c] = df[c].str.strip().replace("", "0").replace(re.compile(","), "")
             df[c] = df[c].astype(np.int)
 
-        df["lastUpdateEt"] = pd.to_datetime(df["lastUpdateEt"].str.replace(" ", "/2020 "), format="%m/%d/%Y %H:%M") \
-            .apply(udatetime.pandas_timestamp_as_eastern)
+        def convert_date(s: pd.Series) -> pd.Series:
+            s = s.replace('', "01/01 00:00") # whole string match
+            s = s.str.replace(' ', "/2020 ") # partial string match
+            s = pd.to_datetime(s, format="%m/%d/%Y %H:%M") \
+                .apply(udatetime.pandas_timestamp_as_eastern)
+            return s
+        
+        # remove current time from first riate
+        current_time = df.loc[0, "lastCheckEt"].replace("CURRENT NAME: ", "")
+        df.loc[0, "lastCheckEt"] = ""
 
+        df["lastUpdateEt"] = convert_date(df["lastUpdateEt"])
+        df["lastCheckEt"] = convert_date(df["lastCheckEt"])
+
+        df = df[ df.state != ""]
         return df
 
     def load_current(self) -> pd.DataFrame:

@@ -101,8 +101,9 @@ class WorksheetWrapper():
             n_vals = len(r)
             if n_vals == 0: continue
             if n_vals < n_cols:
-                logger.warning(f"fewer columns than expected ({n_cols})")
-                logger.warning(f"  {r}")
+                #logger.warning(f"fewer columns than expected ({n_cols})")
+                #logger.warning(f"  {r}")
+                pass
             for i in range(n_vals):
                 data[i].append(r[i])
             for i in range(n_vals, n_cols):

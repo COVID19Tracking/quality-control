@@ -29,15 +29,57 @@ def total(row, log: ResultLog):
 
 
 def last_update(row, log: ResultLog):
-    """Check that the data has been updated within a reasonable timeframe"""
+    """Source has updated within a reasonable timeframe"""
 
     current_time = udatetime.now_as_eastern()
     updated_at = row.lastUpdateEt.to_pydatetime()
     delta = current_time - updated_at
-    hours = delta.total_seconds() / (60.0 * 60)
+    days = delta.total_seconds() / (24 * 60.0 * 60)
 
-    if hours > 36.0:
-        log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
+    if days >= 1.5:
+        log.error(row.state, f"source hasn't updated in {days:.1f}  days")
+    #elif hours > 18.0:
+    #   log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
+
+def last_checked(row, log: ResultLog):
+    """Data was checked within a reasonable timeframe"""
+
+    current_time = udatetime.now_as_eastern()
+    updated_at = row.lastUpdateEt.to_pydatetime()
+    checked_at = row.lastCheckEt.to_pydatetime()
+ 
+    delta = updated_at - checked_at 
+    hours = delta.total_seconds() / (60.0 * 60)
+    if hours > 2.0:        
+        s_updated = updated_at.strftime('%m/%d %H:%M')
+        s_checked = checked_at.strftime('%m/%d %H:%M')
+        log.error(row.state, f"updated since last check: {hours:.0f} hours ago at {s_updated}, checked at {s_checked}")
+        return
+
+    delta = current_time - updated_at
+    hours = delta.total_seconds() / (60.0 * 60)
+    if hours > 12.0:
+        s_checked = checked_at.strftime('%m/%d %H:%M')
+        log.warning(row.state, f"source has not been checked in {hours:.0f} hours at {s_checked}")
+        return
+
+    #elif hours > 18.0:
+    #   log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
+
+
+def checkers_initials(row, log: ResultLog):
+    """Confirm that checker initials are records"""
+
+    checker = row.checker.strip()
+    doubleChecker = row.doubleChecker.strip()
+
+    if checker == "":
+        log.warning(row.state, f"Missing checker initials")
+        return
+    if doubleChecker == "":
+        log.warning(row.state, f"Missing double-checker initials")
+        return
+
     #elif hours > 18.0:
     #   log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
 
@@ -126,8 +168,6 @@ def increasing_values(row, target_date: int, df: pd.DataFrame, log: ResultLog):
 
     df = df[df.date < target_date]
 
-    #print(f"row = {row}")
-    
     #print(df)
     #exit(-1)
 
@@ -135,7 +175,8 @@ def increasing_values(row, target_date: int, df: pd.DataFrame, log: ResultLog):
 
     for c in ["positive", "negative", "death", "total"]:
         val = dict_row[c]
-        prev_val = df[c].values[0]
+        vec = df[c].values
+        prev_val = vec[0] if vec.size > 0 else 0
 
         if val < prev_val:
             log.error(row.state, f"{c} value ({val:,}) is less than prior value ({prev_val:,})")
@@ -146,6 +187,9 @@ def increasing_values(row, target_date: int, df: pd.DataFrame, log: ResultLog):
         if val == prev_val:
             n_days, d = days_since_change(val, df[c], df["date"])
             if n_days >= 0:
+                d = str(d)
+                d = d[4:6] + "/" + d[6:8]
+
                 if prev_val > 20:
                     log.error(row.state, f"{c} value ({val:,}) has not changed since {d} ({n_days} days)")
                 else:
