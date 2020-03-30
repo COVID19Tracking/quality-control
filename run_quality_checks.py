@@ -15,7 +15,7 @@ from  result_log import ResultLog
 from forecast import ForecastConfig
 import checks
 
-def check_working(ds: DataSource) -> ResultLog:
+def check_working(ds: DataSource, config: ForecastConfig) -> ResultLog:
     """
     Check unpublished results in the working google sheet
     https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
@@ -25,10 +25,10 @@ def check_working(ds: DataSource) -> ResultLog:
 
     # targetDate is the date that the dev sheet is currently working on.
     # phase is what part of their process they are in.
-    # targetDateEt is the time that should be used on any 'staleness' checks 
+    # targetDateEt is the time that should be used on any 'staleness' checks
 
     d, phase = checks.current_time_and_phase()
-  
+
     df = ds.working
     df["targetDate"] = d.year * 10000 + d.month * 100 + d.day
     df["targetDateEt"] = d
@@ -51,11 +51,12 @@ def check_working(ds: DataSource) -> ResultLog:
 
         df_history = ds.history[ds.history.state == row.state]
         checks.increasing_values(row, df_history, log)
+        checks.expected_positive_increase(row, df_history, log, config)
 
     return log
 
 
-def check_current(ds: DataSource) -> ResultLog:
+def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
     """
     Check the current published results
     """
@@ -69,8 +70,8 @@ def check_current(ds: DataSource) -> ResultLog:
 
     # setup run settings equivalent to publish date at 5PM
     s = str(publish_date)
-    y,m,d = int(s[0:4]), int(s[4:6]), int(s[6:8]) 
-    
+    y,m,d = int(s[0:4]), int(s[4:6]), int(s[6:8])
+
     df["targetDate"] = publish_date
     df["targetDateEt"] = udatetime.naivedatetime_as_eastern(datetime(y, m, d, 12+5))
     df["lastCheckEt"] = df["targetDateEt"]
@@ -84,13 +85,13 @@ def check_current(ds: DataSource) -> ResultLog:
         checks.pendings_rate(row, log)
 
         df_history = ds.history[ds.history.state == row.state]
-
         checks.increasing_values(row, df_history, log)
+        checks.expected_positive_increase(row, df_history, log, config)
 
     return log
 
 
-def check_history(ds: DataSource, config: ForecastConfig) -> ResultLog:
+def check_history(ds: DataSource) -> ResultLog:
     """
     Check the history
     """
@@ -102,7 +103,6 @@ def check_history(ds: DataSource, config: ForecastConfig) -> ResultLog:
     for state in df["state"].drop_duplicates().values:
         state_df = df.loc[df["state"] == state]
         checks.monotonically_increasing(state_df, log)
-        checks.expected_positive_increase(state_df, log, config)
 
     return log
 
@@ -166,18 +166,17 @@ def main() -> None:
 
     if args.check_working:
         logger.info("--| QUALITY CONTROL --- GOOGLE WORKING SHEET |---------------------------------------------------")
-        log = check_working(ds)
+        log = check_working(ds, config=config)
         log.print()
 
     if args.check_daily:
         logger.info("--| QUALITY CONTROL --- CURRENT |-----------------------------------------------------------")
-        log = check_current(ds)
+        log = check_current(ds, config=config)
         log.print()
-
 
     if args.check_history:
         logger.info("--| QUALITY CONTROL --- HISTORY |-----------------------------------------------------------")
-        log = check_history(ds, config=config)
+        log = check_history(ds)
         log.print()
 
 
