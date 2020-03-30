@@ -51,7 +51,7 @@ def check_working(ds: DataSource, config: ForecastConfig) -> ResultLog:
 
         df_history = ds.history[ds.history.state == row.state]
         checks.increasing_values(row, df_history, log)
-        checks.expected_positive_increase(row, df_history, log, config)
+        checks.expected_positive_increase(row, df_history, log, "working", config)
 
     return log
 
@@ -86,7 +86,7 @@ def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
 
         df_history = ds.history[ds.history.state == row.state]
         checks.increasing_values(row, df_history, log)
-        checks.expected_positive_increase(row, df_history, log, config)
+        checks.expected_positive_increase(row, df_history, log, "current", config)
 
     return log
 

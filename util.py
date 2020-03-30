@@ -8,9 +8,9 @@ from datetime import datetime
 from requests.packages import urllib3
 import configparser
 
-from shared import udatetime
+import udatetime
 
-urllib3.disable_warnings() 
+urllib3.disable_warnings()
 
 def fetch_with_requests(page: str) -> [bytes, int]:
     " check data using requests "
@@ -32,8 +32,8 @@ def is_bad_content(content: bytes) -> [bool, str]:
 
 
 def convert_json_to_python(x):
-    """ convert a data collection from json compatible format 
-    
+    """ convert a data collection from json compatible format
+
     1. operates on data inplace
     2. input should be a list or a dict
     3. deals with parsing strings into dates.
@@ -69,11 +69,11 @@ def convert_json_to_python(x):
             x[i] = convert_json_to_python(v)
     else:
         raise Exception(f"unexpected type: {type(x)}")
-    return x 
+    return x
 
 def convert_python_to_json(x):
-    """ convert a data collection to a json compatible format 
-    
+    """ convert a data collection to a json compatible format
+
     1. operates on data inplace
     2. input should be a list or a dict
     3. formats datetime as ISO string
@@ -110,7 +110,7 @@ def convert_python_to_json(x):
             x[i] = convert_python_to_json(v)
     else:
         raise Exception(f"unexpected type: {type(x)}")
-    return x 
+    return x
 
 # -----
 
@@ -124,7 +124,7 @@ def get_host():
 
 def read_config_file(project_name: str) -> configparser.ConfigParser:
     """Find and load the ini file
-    
+
     It maybe in the current directory or it's parents depending on project structure.
     If a .local. version is found, use that fires
     """

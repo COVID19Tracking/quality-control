@@ -181,7 +181,7 @@ def death_rate(row, log: ResultLog):
     """Check that deaths are <5% of test results"""
 
     n_pos, n_neg, n_deaths = row.positive, row.negative, row.death
-    n_tot = n_pos + n_neg 
+    n_tot = n_pos + n_neg
 
     percent_deaths = 100.0 * n_deaths / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
@@ -323,7 +323,8 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 
 FIT_THRESHOLDS = [0.95, 1.1]
 
-def expected_positive_increase(current: pd.DataFrame, history: pd.DataFrame, log: ResultLog, config: ForecastConfig=None):
+def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
+                                log: ResultLog, context: str, config: ForecastConfig=None):
     """
     Fit state-level daily positives data to an exponential and a linear curve.
     Get expected vs actual case increase to determine if current positives
@@ -346,7 +347,7 @@ def expected_positive_increase(current: pd.DataFrame, history: pd.DataFrame, log
     forecast.project(current)
 
     if config.plot_models:
-        forecast.plot(config.images_dir)
+        forecast.plot(f"{config.images_dir}/{context}", FIT_THRESHOLDS)
 
     state = forecast.state
     date = forecast.date
