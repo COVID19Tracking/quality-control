@@ -31,7 +31,7 @@ def now_as_eastern() -> datetime:
     xnow = datetime.now().astimezone(eastern_tz)
     return xnow
 
-def naivedate_as_eastern(dt: datetime) -> datetime:
+def naivedatetime_as_eastern(dt: datetime) -> datetime:
     """ convert a python date into as a tz-aware datetime
     """
     if dt == None: return None

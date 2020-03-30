@@ -23,10 +23,22 @@ def check_working(ds: DataSource) -> ResultLog:
 
     log = ResultLog()
 
-    target_date = 20200329 # hard code for now - josh
+    # targetDate is the date that the dev sheet is currently working on.
+    # phase is what part of their process they are in.
+    # targetDateEt is the time that should be used on any 'staleness' checks 
 
-    for row in ds.working.itertuples():
+    d, phase = checks.current_time_and_phase()
+  
+    df = ds.working
+    df["targetDate"] = d.year * 10000 + d.month * 100 + d.day
+    df["targetDateEt"] = d
+    df["phase"] = phase
+
+    logger.info(f"Running with target date = {d} and phase = {phase}")
+
+    for row in df.itertuples():
         checks.total(row, log)
+        #checks.total_tests(row, log)
         checks.last_update(row, log)
         checks.last_checked(row, log)
         checks.checkers_initials(row, log)
@@ -36,7 +48,7 @@ def check_working(ds: DataSource) -> ResultLog:
         checks.pendings_rate(row, log)
 
         df_history = ds.history[ds.history.state == row.state]
-        checks.increasing_values(row, target_date, df_history, log)
+        checks.increasing_values(row, df_history, log)
 
     return log
 
@@ -48,9 +60,21 @@ def check_current(ds: DataSource) -> ResultLog:
 
     log = ResultLog()
 
-    target_date = 20200329 # hard code for now - josh
+    df = ds.current
 
-    for row in ds.current.itertuples():
+    publish_date = 20200330
+    logger.error(f" [date is hard-coded to {publish_date}]")
+
+    # setup run settings equivalent to publish date at 5PM
+    s = str(publish_date)
+    y,m,d = int(s[0:4]), int(s[4:6]), int(s[6:8]) 
+    
+    df["targetDate"] = publish_date
+    df["targetDateEt"] = udatetime.naivedatetime_as_eastern(datetime(y, m, d, 12+5))
+    df["lastCheckEt"] = df["targetDateEt"]
+    df["phase"] = "publish"
+
+    for row in df.itertuples():
         checks.total(row, log)
         checks.last_update(row, log)
         checks.positives_rate(row, log)
@@ -59,7 +83,7 @@ def check_current(ds: DataSource) -> ResultLog:
 
         df_history = ds.history[ds.history.state == row.state]
 
-        checks.increasing_values(row, target_date, df_history, log)
+        checks.increasing_values(row, df_history, log)
 
     return log
 

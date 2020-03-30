@@ -6,6 +6,10 @@
 #   If any issues are found, the check routine calls the log to report it.
 #   The three log methods are info/warning/error.
 #
+#   Each row has a 'phase' appended to it that can be used to control how
+#   errors are reported.  At certain times, fields like checked are expected
+#   to be cleared.
+#
 
 from datetime import datetime
 import pandas as pd
@@ -16,6 +20,37 @@ import udatetime
 from result_log import ResultLog
 from forecast import Forecast, ForecastConfig
 
+START_OF_TIME = udatetime.naivedatetime_as_eastern(datetime(2020,1,2))
+
+
+def current_time_and_phase() -> Tuple[datetime, str]:
+    "get the current time (ET) and phase of the process given the hour"
+
+    target_time = udatetime.now_as_eastern()
+
+    hour = target_time.hour
+
+    # note -- these are all just guesses on a mental model of 1 update per day. Josh
+    phase = ""
+    if hour < 10:
+        phase = "inactive"
+    elif hour < 12 + 2:
+        phase = "prepare" # preparing for run
+    elif hour < 12 + 4:
+        phase ="active" # working on an update
+    elif hour < 12 + 6:
+        phase ="publish" # getting close to publishing
+    elif hour < 12 + 9:
+        phase ="cleanup" # cleanup from main run
+    elif hour < 12 + 10:
+        phase ="update" # updating numbers for the day
+    else:
+        phase = "inactive"
+
+    return target_time, phase
+
+
+# -------------------------------------------------
 
 def total(row, log: ResultLog):
     """Check that pendings, positive, and negative sum to the reported total"""
@@ -27,27 +62,49 @@ def total(row, log: ResultLog):
     if n_diff != 0:
         log.error(row.state, f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
 
+def total_tests(row, log: ResultLog):
+    """Check that positive, and negative sum to the reported totalTest"""
+
+    # note -- I don't know where this field is in the sheet so this test is not used right now - Josh
+
+    n_pos, n_neg, n_tests = \
+        row.positive, row.negative, row.totalTestResults
+
+    n_diff = n_tests - (n_pos + n_neg)
+    if n_diff != 0:
+        log.error(row.state, f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) != Total Tests ({n_tests}), delta = {n_diff}")
+
 
 def last_update(row, log: ResultLog):
     """Source has updated within a reasonable timeframe"""
 
-    current_time = udatetime.now_as_eastern()
     updated_at = row.lastUpdateEt.to_pydatetime()
-    delta = current_time - updated_at
+    target_time = row.targetDateEt.to_pydatetime()
+    delta = target_time - updated_at
     days = delta.total_seconds() / (24 * 60.0 * 60)
 
     if days >= 1.5:
-        log.error(row.state, f"source hasn't updated in {days:.1f}  days")
+        log.error(row.state, f"source hasn't updated in {days:.1f} days")
     #elif hours > 18.0:
     #   log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
 
 def last_checked(row, log: ResultLog):
     """Data was checked within a reasonable timeframe"""
 
-    current_time = udatetime.now_as_eastern()
+    target_date = row.targetDateEt.to_pydatetime()
     updated_at = row.lastUpdateEt.to_pydatetime()
     checked_at = row.lastCheckEt.to_pydatetime()
  
+    if checked_at <= START_OF_TIME:
+        phase = row.phase
+        if phase == "inactive": 
+            pass
+        elif phase in ["publish", "update"]:
+            log.error(row.state, f"check needed")
+        elif phase in ["prepare", "cleanup"]:
+            log.info(row.state, f"check needed")
+        return
+
     delta = updated_at - checked_at 
     hours = delta.total_seconds() / (60.0 * 60)
     if hours > 2.0:        
@@ -56,7 +113,7 @@ def last_checked(row, log: ResultLog):
         log.error(row.state, f"updated since last check: {hours:.0f} hours ago at {s_updated}, checked at {s_checked}")
         return
 
-    delta = current_time - updated_at
+    delta = target_date - updated_at
     hours = delta.total_seconds() / (60.0 * 60)
     if hours > 12.0:
         s_checked = checked_at.strftime('%m/%d %H:%M')
@@ -70,14 +127,36 @@ def last_checked(row, log: ResultLog):
 def checkers_initials(row, log: ResultLog):
     """Confirm that checker initials are records"""
 
+    phase = row.phase
+    if phase == "inactive": return
+
+
+
+    target_date = row.targetDateEt.to_pydatetime()
+    checked_at = row.lastCheckEt.to_pydatetime()
+    if checked_at <= START_OF_TIME: return
+
+    is_near_release = phase in ["publish", "update"]
+
     checker = row.checker.strip()
     doubleChecker = row.doubleChecker.strip()
 
+    delta_hours = (target_date - checked_at).total_seconds() / (60.0 * 60.0)
+
     if checker == "":
-        log.warning(row.state, f"Missing checker initials")
+        if 0 < delta_hours < 5:
+            s_checked = checked_at.strftime('%m/%d %H:%M')
+            log.error(row.state, f"Missing checker initials but checked date set recently (at {s_checked})")
+        elif is_near_release:
+            log.error(row.state, f"Missing checker initials")
+        else:
+            log.info(row.state, f"Missing checker initials")
         return
     if doubleChecker == "":
-        log.warning(row.state, f"Missing double-checker initials")
+        if is_near_release:
+            log.error(row.state, f"Missing double-checker initials")
+        else:
+            log.info(row.state, f"Missing double-checker initials")
         return
 
     #elif hours > 18.0:
@@ -160,13 +239,13 @@ def days_since_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, int]:
 
 #TODO: add date to dev worksheet so we don't have to pass it around
 
-def increasing_values(row, target_date: int, df: pd.DataFrame, log: ResultLog):
+def increasing_values(row, df: pd.DataFrame, log: ResultLog):
     """Check that new values more than previous values
 
     df contains the historical values (newest first).  offset controls how many days to look back.
     """
 
-    df = df[df.date < target_date]
+    df = df[df.date < row.targetDate]
 
     #print(df)
     #exit(-1)
@@ -184,13 +263,17 @@ def increasing_values(row, target_date: int, df: pd.DataFrame, log: ResultLog):
         # allow value to be the same if below a threshold
         if val < IGNORE_THRESHOLDS[c]: continue
 
+        phase = row.phase
+        checked_at = row.lastCheckEt.to_pydatetime()
+        is_check_field_set = checked_at > START_OF_TIME
+
         if val == prev_val:
             n_days, d = days_since_change(val, df[c], df["date"])
             if n_days >= 0:
                 d = str(d)
                 d = d[4:6] + "/" + d[6:8]
 
-                if prev_val > 20:
+                if prev_val >= 20 and (is_check_field_set or phase in ["publish", "update"]):
                     log.error(row.state, f"{c} value ({val:,}) has not changed since {d} ({n_days} days)")
                 else:
                     log.warning(row.state, f"{c} value ({val:,}) has not changed since {d} ({n_days} days)")
