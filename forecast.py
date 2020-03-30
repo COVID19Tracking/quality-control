@@ -12,11 +12,12 @@ from typing import Tuple
 
 warnings.filterwarnings('ignore')
 
+
 def _format_date(date:str) -> str:
     """return YYYYmmdd as YYYY-mm-dd"""
     return f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
-def _exp_curve(x: float, a: float, b: float) -> float:
+def _exp_fit(x: float, a: float, b: float) -> float:
     return a * np.exp(b * x)
 
 def _linear_fit(x: float, m: float, b: float) -> float:
@@ -44,66 +45,73 @@ class Forecast():
     " simple forecast model for estimating if new values are reasonable "
 
     def __init__(self):
-        
-        self.df: pd.DataFrame = None        
-        
+
+        self.df: pd.DataFrame = None
+
         self.state = ""
         self.date = ""
         self.actual_value = 0
         self.expected_exp = 0
         self.expected_linear = 0
 
-        self.case_df: pd.DataFrame = None        
-        self.fitted_linear = None
-        self.fitted_exp = None
-
-    def fit(self, df: pd.DataFrame):
-        "Fit an exponential and linear model to the history"
-        self.df = df        
-        self.state = df["state"].values[0]
-
-        cases_df = (self.df
-            .sort_values("date", ascending=True)
-            .reset_index(drop=True)
-            .rename_axis('index')
-            .reset_index())
-
-        to_fit_exp = cases_df[:-1]
-        to_fit_linear = cases_df[-5:-1]
-        to_forecast = cases_df.tail(1)
-
-        self.fitted_linear = _get_distribution_fit(to_fit_linear["index"], to_fit_linear["positive"], _linear_fit)
-        self.fitted_exp = _get_distribution_fit(to_fit_exp["index"], to_fit_exp["positive"], _exp_curve)
-
-        self.cases_df = cases_df
-
-        self.date = _format_date(to_forecast["date"].values[0].astype(str))
-        self.actual_value = to_forecast["positive"].values[0]
-        self.expected_exp = _exp_curve(to_forecast["index"].values[0], *self.fitted_exp).round().astype(int)
-        self.expected_linear = _linear_fit(to_forecast["index"].values[0], *self.fitted_linear).round().astype(int)
+        self.case_df: pd.DataFrame = None
+        self.projection_index = None
+        self.fitted_linear_params = None
+        self.fitted_exp_params = None
 
     @property
     def results(self) -> Tuple[int, int, int]:
         "Get the results from the model"
         return self.actual_value, self.expected_linear, self.expected_exp
 
+
+    def fit(self, df: pd.DataFrame):
+        "Fit an exponential and linear model to the history"
+
+        self.df = df
+        self.state = df["state"].values[0]
+
+        self.cases_df = (self.df
+            .sort_values("date", ascending=True)
+            .reset_index(drop=True)
+            .rename_axis('index')
+            .reset_index())
+
+        to_fit_exp = self.cases_df
+        to_fit_linear = self.cases_df[-4:]
+
+        self.fitted_linear_params = _get_distribution_fit(to_fit_linear["index"], to_fit_linear["positive"], _linear_fit)
+        self.fitted_exp_params = _get_distribution_fit(to_fit_exp["index"], to_fit_exp["positive"], _exp_fit)
+
+    def project(self, row: tuple) -> None:
+        "Get forecasted positives value for current day"
+        self.date = row.lastUpdateEt.to_pydatetime().strftime('%Y-%m-%d')
+        self.actual_value = row.positive
+
+        self.projection_index = self.cases_df["index"].max() + \
+            (int(self.date.replace("-","")) - self.cases_df["date"].max())
+        self.expected_exp = _exp_fit(self.projection_index, *self.fitted_exp_params).round().astype(int)
+        self.expected_linear = _linear_fit(self.projection_index, *self.fitted_linear_params).round().astype(int)
+
     def plot(self, image_dir: str):
         "Plot case growth (expected and actuals)"
 
         matplotlib.style.use('ggplot')
 
-        cases_df = self.cases_df
-
         plt.figure(figsize=(9,15))
-        ax = cases_df.plot.bar(x="index", y="positive", color="gray", alpha=.7, label="actual positives growth")
-        plt.plot(cases_df["index"], _exp_curve(cases_df["index"], *self.fitted_exp), color="red", label="exponential fit")
-        plt.plot(cases_df["index"], _linear_fit(cases_df["index"], *self.fitted_linear), color="black", label="projected growth")
+        to_plot = self.cases_df[["index", "positive"]].append(
+            {"index":self.projection_index, "positive":self.actual_value}, ignore_index=True)
+        ax = to_plot.plot.bar(x="index", y="positive", color="gray", alpha=.7, label="actual positives growth")
+        plt.plot(to_plot["index"], _exp_fit(to_plot["index"], *self.fitted_exp_params), color="red", label="exponential fit")
+        plt.plot(to_plot["index"], _linear_fit(to_plot["index"], *self.fitted_linear_params), color="black", label="projected growth")
 
-        plt.title(f"{self.state} ({self.date}): Expected {self.expected_linear}, got {self.actual_value}")
-        ax.set_xticklabels(cases_df["date"].apply(lambda d: _format_date(str(d))), rotation=90)
+        plotted_dates = [_format_date(str(d)) for d in np.arange(
+            self.cases_df.date.min(), int(self.date.replace("-",""))+1)]
+        plt.title(f"{self.state} ({self.date}): {self.actual_value} positives, expected between {self.expected_linear} and {self.expected_exp}")
+        ax.set_xticklabels(plotted_dates, rotation=90)
         plt.xlabel("Day")
         plt.ylabel("Number of positive cases")
-        plt.ylim(0,max(cases_df["positive"].max(), self.expected_exp, self.expected_linear)+10)
+        plt.ylim(0, np.ceil(max(self.results)*1.2))
         plt.legend()
 
         # TODO: Might want to save these to s3?

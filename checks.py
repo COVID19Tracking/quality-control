@@ -94,10 +94,10 @@ def last_checked(row, log: ResultLog):
     target_date = row.targetDateEt.to_pydatetime()
     updated_at = row.lastUpdateEt.to_pydatetime()
     checked_at = row.lastCheckEt.to_pydatetime()
- 
+
     if checked_at <= START_OF_TIME:
         phase = row.phase
-        if phase == "inactive": 
+        if phase == "inactive":
             pass
         elif phase in ["publish", "update"]:
             log.error(row.state, f"check needed")
@@ -105,9 +105,9 @@ def last_checked(row, log: ResultLog):
             log.info(row.state, f"check needed")
         return
 
-    delta = updated_at - checked_at 
+    delta = updated_at - checked_at
     hours = delta.total_seconds() / (60.0 * 60)
-    if hours > 2.0:        
+    if hours > 2.0:
         s_updated = updated_at.strftime('%m/%d %H:%M')
         s_checked = checked_at.strftime('%m/%d %H:%M')
         log.error(row.state, f"updated since last check: {hours:.0f} hours ago at {s_updated}, checked at {s_checked}")
@@ -146,15 +146,15 @@ def checkers_initials(row, log: ResultLog):
     if checker == "":
         if 0 < delta_hours < 5:
             s_checked = checked_at.strftime('%m/%d %H:%M')
-            log.error(row.state, f"Missing checker initials but checked date set recently (at {s_checked})")
+            log.error(row.state, f"missing checker initials but checked date set recently (at {s_checked})")
         elif is_near_release:
-            log.error(row.state, f"Missing checker initials")
+            log.error(row.state, f"missing checker initials")
         else:
-            log.info(row.state, f"Missing checker initials")
+            log.info(row.state, f"missing checker initials")
         return
     if doubleChecker == "":
         if is_near_release:
-            log.error(row.state, f"Missing double-checker initials")
+            log.error(row.state, f"missing double-checker initials")
         else:
             log.info(row.state, f"Missing double-checker initials")
         return
@@ -208,10 +208,10 @@ def pendings_rate(row, log: ResultLog):
 
     if n_tot > 1000:
         if percent_pending > 20.0:
-            log.warning(row.state, f"Too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
+            log.warning(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
     else:
         if percent_pending > 80.0:
-            log.warning(row.state, f"Too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
+            log.warning(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
 
 # ----------------------------------------------------------------
 
@@ -323,22 +323,27 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 
 FIT_THRESHOLDS = [0.95, 1.1]
 
-def expected_positive_increase(df: pd.DataFrame, log: ResultLog, config: ForecastConfig = None):
+def expected_positive_increase(current: pd.DataFrame, history: pd.DataFrame, log: ResultLog, config: ForecastConfig=None):
     """
-    Fit state-level timeseries data to an exponential and a linear curve.
-    Get expected vs actual case increase.
+    Fit state-level daily positives data to an exponential and a linear curve.
+    Get expected vs actual case increase to determine if current positives
+    are within the expected ranges.
 
-    The exponential is used as the upper bound. The linear is used as the lower bound.    
+    The exponential is used as the upper bound. The linear is used as the lower bound.
 
     TODO: Eventually these curves will NOT be exp (perhaps logistic?)
           Useful to know which curves have been "leveled" but from a
-          data quality persepctive, this check would become annoying
+          data quality perspective, this check would become annoying
     """
 
     if not config: config = ForecastConfig()
 
+    forecast_date = current.lastUpdateEt.to_pydatetime().strftime('%Y%m%d')
+    history = history.loc[history["date"].astype(str) != forecast_date]
+
     forecast = Forecast()
-    forecast.fit(df)
+    forecast.fit(history)
+    forecast.project(current)
 
     if config.plot_models:
         forecast.plot(config.images_dir)
@@ -355,6 +360,6 @@ def expected_positive_increase(df: pd.DataFrame, log: ResultLog, config: Forecas
         if actual_value < expected_linear:
             direction = "drop"
 
-        log.error(state, f"Unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
+        log.error(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
 
 
