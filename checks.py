@@ -95,16 +95,16 @@ def pendings_rate(row, log: ResultLog):
 # ----------------------------------------------------------------
 
 IGNORE_THRESHOLDS = {
-    "positive": 20,
-    "negative": 80,
-    "death": 5,
-    "total": 100
+    "positive": 100,
+    "negative": 900,
+    "death": 20,
+    "total": 1000
 }
 EXPECTED_PERCENT_THRESHOLDS = {
-    "positive": (5,30),
-    "negative": (5,40),
-    "death": (0,5),
-    "total": (5,40)
+    "positive": (5,40),
+    "negative": (5,50),
+    "death": (0,10),
+    "total": (5,50)
 }
 
 
@@ -159,7 +159,7 @@ def increasing_values(row, target_date: int, df: pd.DataFrame, log: ResultLog):
         #TODO: estimate expected increase from recent history
         p_min, p_max = EXPECTED_PERCENT_THRESHOLDS[c]
         if p_observed < p_min or p_observed > p_max:
-            log.warning(row.state, f"{c} value ({val:,}) is a {p_observed:.1f}% increase, expected: {p_min:.1f} to {p_max:.1f}%")
+            log.warning(row.state, f"{c} value ({val:,}) is a {p_observed:.0f}% increase, expected: {p_min:.0f} to {p_max:.0f}%")
 
 
 # ----------------------------------------------------------------
