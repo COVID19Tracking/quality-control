@@ -36,6 +36,8 @@ def check_working(ds: DataSource) -> ResultLog:
 
     logger.info(f"Running with target date = {d} and phase = {phase}")
 
+    # *** WHEN YOU CHANGE A CHECK THAT IMPACTS WORKING, MAKE SURE TO UPDATE THE EXCEL TRACKING DOCUMENT ***
+
     for row in df.itertuples():
         checks.total(row, log)
         #checks.total_tests(row, log)
