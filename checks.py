@@ -195,10 +195,12 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 
 FIT_THRESHOLDS = [0.95, 1.1]
 
-def expected_positive_increase(df: pd.DataFrame, log: ResultLog):
+def expected_positive_increase(df: pd.DataFrame, log: ResultLog, plot_models = False):
     """
-    Fit state-level timeseries data to an exponential curve to
-    Get expected vs actual case increase
+    Fit state-level timeseries data to an exponential and a linear curve.
+    Get expected vs actual case increase.
+
+    The exponential is used as the upper bound. The linear is used as the lower bound.    
 
     TODO: Eventually these curves will NOT be exp (perhaps logistic?)
           Useful to know which curves have been "leveled" but from a
@@ -208,7 +210,8 @@ def expected_positive_increase(df: pd.DataFrame, log: ResultLog):
     forecast = Forecast()
     forecast.fit(df)
 
-    forecast.plot("./images")
+    if plot_models:
+        forecast.plot("./images")
 
     state = forecast.state
     date = forecast.date

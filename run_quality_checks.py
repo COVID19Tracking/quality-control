@@ -59,7 +59,7 @@ def check_current(ds: DataSource) -> ResultLog:
     return log
 
 
-def check_history(ds: DataSource) -> ResultLog:
+def check_history(ds: DataSource, plot_models=False) -> ResultLog:
     """
     Check the history
     """
@@ -71,7 +71,7 @@ def check_history(ds: DataSource) -> ResultLog:
     for state in df["state"].drop_duplicates().values:
         state_df = df.loc[df["state"] == state]
         checks.monotonically_increasing(state_df, log)
-        checks.expected_positive_increase(state_df, log)
+        checks.expected_positive_increase(state_df, log, plot_models=plot_models)
 
     return log
 
@@ -96,6 +96,10 @@ def load_args_parser() -> ArgumentParser:
     parser.add_argument(
         '-x', '--history', dest='check_history', action='store_true', default=False,
         help='check the history (only)')
+
+    parser.add_argument(
+        '--plot', dest='plot_models', action='store_true', default=False,
+        help='plot the model curves')
 
     return parser
 
@@ -130,7 +134,7 @@ def main() -> None:
 
     if args.check_history:
         logger.info("--| QUALITY CONTROL --- HISTORY |-----------------------------------------------------------")
-        log = check_history(ds)
+        log = check_history(ds, plot_models=args.plot_models)
         log.print()
 
 
