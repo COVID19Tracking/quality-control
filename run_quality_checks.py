@@ -20,6 +20,8 @@ def check_working(ds: DataSource) -> ResultLog:
 
     log = ResultLog()
 
+    target_date = 20200329 # hard code for now - josh
+
     for row in ds.working.itertuples():
         checks.total(row, log)
         checks.last_update(row, log)
@@ -29,7 +31,7 @@ def check_working(ds: DataSource) -> ResultLog:
         checks.pendings_rate(row, log)
 
         df_history = ds.history[ds.history.state == row.state]
-        checks.increasing_values(row, df_history, log, offset=0)
+        checks.increasing_values(row, target_date, df_history, log)
 
     return log
 
@@ -41,6 +43,8 @@ def check_current(ds: DataSource) -> ResultLog:
 
     log = ResultLog()
 
+    target_date = 20200329 # hard code for now - josh
+
     for row in ds.current.itertuples():
         checks.total(row, log)
         checks.last_update(row, log)
@@ -50,7 +54,7 @@ def check_current(ds: DataSource) -> ResultLog:
 
         df_history = ds.history[ds.history.state == row.state]
 
-        checks.increasing_values(row, df_history, log, offset=1)
+        checks.increasing_values(row, target_date, df_history, log)
 
     return log
 

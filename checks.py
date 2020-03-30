@@ -14,6 +14,7 @@ from scipy.optimize import curve_fit
 import matplotlib
 import matplotlib.pyplot as plt
 import warnings
+from typing import Tuple
 
 import udatetime
 from result_log import ResultLog
@@ -58,7 +59,7 @@ def positives_rate(row, log: ResultLog):
         if percent_pos > 40.0 and n_pos > 20:
             log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
     else:
-        if percent_pos > 80.0:
+        if percent_pos > 80.0 and n_pos > 20:
             log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
 
 def death_rate(row, log: ResultLog):
@@ -110,17 +111,35 @@ EXPECTED_PERCENT_THRESHOLDS = {
     "total": (5,40)
 }
 
-def increasing_values(row, df: pd.DataFrame, log: ResultLog, offset=0):
+
+
+def days_since_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, int]:
+
+    vals = vec_vals.values
+    for i in range(len(vals)):
+        if vals[i] != val: return i+1, vec_date.values[i]
+    return -1, None
+
+#TODO: add date to dev worksheet so we don't have to pass it around
+
+def increasing_values(row, target_date: int, df: pd.DataFrame, log: ResultLog):
     """Check that new values more than previous values
 
     df contains the historical values (newest first).  offset controls how many days to look back.
     """
 
+    df = df[df.date < target_date]
+
+    #print(f"row = {row}")
+    
+    #print(df)
+    #exit(-1)
+
     dict_row = row._asdict()
 
     for c in ["positive", "negative", "death", "total"]:
         val = dict_row[c]
-        prev_val = df[c].values[offset]
+        prev_val = df[c].values[0]
 
         if val < prev_val:
             log.error(row.state, f"{c} value ({val:,}) is less than prior value ({prev_val:,})")
@@ -129,10 +148,14 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, offset=0):
         if val < IGNORE_THRESHOLDS[c]: continue
 
         if val == prev_val:
-            if prev_val > 20:
-                log.error(row.state, f"{c} value ({val:,}) is same as prior value ({prev_val:,})")
+            n_days, d = days_since_change(val, df[c], df["date"])
+            if n_days >= 0:
+                if prev_val > 20:
+                    log.error(row.state, f"{c} value ({val:,}) has not changed since {d} ({n_days} days)")
+                else:
+                    log.warning(row.state, f"{c} value ({val:,}) has not changed since {d} ({n_days} days)")
             else:
-                log.warning(row.state, f"{c} value ({val:,}) is same as prior value ({prev_val:,})")
+                log.error(row.state, f"{c} value ({val:,}) constant for all time")
             continue
 
         p_observed = 100.0 * val / prev_val - 100.0
