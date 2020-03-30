@@ -10,6 +10,8 @@
 #   errors are reported.  At certain times, fields like checked are expected
 #   to be cleared.
 #
+# *** WHEN YOU CHANGE A CHECK THAT IMPACTS WORKING, MAKE SURE TO UPDATE THE EXCEL TRACKING DOCUMENT ***
+
 
 from datetime import datetime
 import pandas as pd
@@ -130,8 +132,6 @@ def checkers_initials(row, log: ResultLog):
     phase = row.phase
     if phase == "inactive": return
 
-
-
     target_date = row.targetDateEt.to_pydatetime()
     checked_at = row.lastCheckEt.to_pydatetime()
     if checked_at <= START_OF_TIME: return
@@ -167,7 +167,7 @@ def positives_rate(row, log: ResultLog):
     """Check that positives compose <20% test results"""
 
     n_pos, n_neg, n_deaths = row.positive, row.negative, row.death
-    n_tot = n_pos + n_neg + n_deaths
+    n_tot = n_pos + n_neg
 
     percent_pos = 100.0 * n_pos / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
@@ -178,10 +178,10 @@ def positives_rate(row, log: ResultLog):
             log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
 
 def death_rate(row, log: ResultLog):
-    """Check that deaths are <2% of test results"""
+    """Check that deaths are <5% of test results"""
 
     n_pos, n_neg, n_deaths = row.positive, row.negative, row.death
-    n_tot = n_pos + n_neg + n_deaths
+    n_tot = n_pos + n_neg 
 
     percent_deaths = 100.0 * n_deaths / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
@@ -203,7 +203,7 @@ def pendings_rate(row, log: ResultLog):
     """Check that pendings are not more than 20% of total"""
 
     n_pos, n_neg, n_pending, n_deaths = row.positive, row.negative, row.pending, row.death
-    n_tot = n_pos + n_neg + n_deaths
+    n_tot = n_pos + n_neg
     percent_pending = 100.0 * n_pending / n_tot if n_tot > 0 else 0.0
 
     if n_tot > 1000:
