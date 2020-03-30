@@ -1,48 +1,22 @@
-2020-03-30 15:15:52.586 | INFO     | __main__:check_working:37 - Running with target date = 2020-03-30 16:15:51.136242-04:00 and phase = publish
+2020-03-30 16:06:31.060 | INFO     | __main__:check_working:37 - Running with target date = 2020-03-30 17:06:29.761912-04:00 and phase = publish
 
 =====| ERROR |===========
 AL: source hasn't updated in 1.7 days
-CA: check needed
-CA: positive value (5,708) has not changed since 03/28 (2 days)
 CA: negative value (20,549) has not changed since 03/27 (3 days)
-CA: death value (123) has not changed since 03/28 (2 days)
-CA: total value (90,657) has not changed since 03/28 (2 days)
-CA: unexpected drop in positive cases (5,708) for 2020-03-30, expected between 6,199 and 7,592
-CO: updated since last check: 13 hours ago at 03/31 01:59, checked at 03/30 13:26
-CO: missing double-checker initials
-CT: positive value (1,993) has not changed since 03/28 (2 days)
-CT: negative value (9,907) has not changed since 03/28 (2 days)
-CT: death value (34) has not changed since 03/28 (2 days)
-CT: total value (11,900) has not changed since 03/28 (2 days)
 GA: unexpected drop in positive cases (2,809) for 2020-03-30, expected between 2,918 and 3,851
 IL: source hasn't updated in 1.7 days
-IL: positive value (4,596) has not changed since 03/28 (2 days)
-IL: negative value (23,166) has not changed since 03/28 (2 days)
-IL: death value (65) has not changed since 03/28 (2 days)
-IL: total value (27,762) has not changed since 03/28 (2 days)
 KY: unexpected increase in positive cases (439) for 2020-03-29, expected between 330 and 422
-MA: positive value (4,955) has not changed since 03/28 (2 days)
-MA: negative value (34,111) has not changed since 03/28 (2 days)
-MA: death value (48) has not changed since 03/28 (2 days)
-MA: total value (39,066) has not changed since 03/28 (2 days)
 ME: negative value (3,394) has not changed since 03/25 (5 days)
-MI: positive value (5,486) has not changed since 03/28 (2 days)
 MI: negative value (11,893) has not changed since 03/28 (2 days)
-MI: death value (132) has not changed since 03/28 (2 days)
-MI: total value (17,379) has not changed since 03/28 (2 days)
-MO: unexpected drop in positive cases (903) for 2020-03-29, expected between 945 and 1,348
 MP: unexpected drop in positive cases (2) for 2020-03-30, expected between 2 and 0
 MT: negative value (3,961) is less than prior value (4,143)
 MT: total value (4,132) is less than prior value (4,297)
 MT: unexpected drop in positive cases (171) for 2020-03-30, expected between 173 and 225
 NE: unexpected increase in positive cases (145) for 2020-03-30, expected between 114 and 139
-NH: unexpected increase in positive cases (258) for 2020-03-29, expected between 201 and 256
+NH: unexpected increase in positive cases (314) for 2020-03-29, expected between 201 and 256
 NM: source hasn't updated in 1.7 days
 NM: positive value (237) has not changed since 03/28 (2 days)
-RI: missing double-checker initials
 RI: unexpected increase in positive cases (408) for 2020-03-30, expected between 297 and 361
-SC: positive value (774) has not changed since 03/28 (2 days)
-SC: unexpected drop in positive cases (774) for 2020-03-30, expected between 775 and 1,008
 TX: death value (34) has not changed since 03/28 (2 days)
 VI: total value (180) is less than prior value (183)
 WA: source hasn't updated in 1.6 days
@@ -54,57 +28,59 @@ WV: unexpected drop in positive cases (126) for 2020-03-30, expected between 129
 WY: unexpected drop in positive cases (94) for 2020-03-30, expected between 95 and 124
 
 =====| WARNING |===========
-AK: source has not been checked in 21 hours at 03/30 13:07
-AL: source has not been checked in 40 hours at 03/30 16:03
-AR: negative value (3,087) is a 2% increase, expected: 5 to 50%
-AR: total value (3,536) is a 2% increase, expected: 5 to 50%
-AS: source has not been checked in 16 hours at 03/30 13:18
-AZ: source has not been checked in 16 hours at 03/30 16:09
+AK: source has not been checked in 22 hours at 03/30 13:07
+AL: source has not been checked in 41 hours at 03/30 16:03
+AR: negative value (5,262) is a 74% increase, expected: 5 to 50%
+AR: total value (5,735) is a 66% increase, expected: 5 to 50%
+AS: source has not been checked in 17 hours at 03/30 13:18
+AZ: source has not been checked in 17 hours at 03/30 16:09
 AZ: death value (20) is a 18% increase, expected: 0 to 10%
-CA: too many pending 245% (pending=64,400, total=26,257)
+CA: source has not been checked in 17 hours at 03/30 16:46
+CA: too many pending 239% (pending=64,400, total=26,996)
+CA: total value (91,396) is a 1% increase, expected: 5 to 50%
 CO: death value (51) is a 16% increase, expected: 0 to 10%
-CT: source has not been checked in 28 hours at 03/30 14:24
 DC: source has not been checked in 20 hours at 03/30 15:33
-DE: source has not been checked in 16 hours at 03/30 15:43
+DE: source has not been checked in 17 hours at 03/30 16:31
 DE: negative value (2,216) is a 6056% increase, expected: 5 to 50%
 DE: total value (2,480) is a 825% increase, expected: 5 to 50%
 FL: death value (63) is a 12% increase, expected: 0 to 10%
 GA: negative value (9,915) is a 0% increase, expected: 5 to 50%
 GA: total value (12,724) is a 1% increase, expected: 5 to 50%
-HI: source has not been checked in 22 hours at 03/30 14:26
-IA: source has not been checked in 16 hours at 03/30 16:09
-ID: source has not been checked in 21 hours at 03/30 14:26
-IL: source has not been checked in 40 hours at 03/30 14:04
-IN: source has not been checked in 27 hours at 03/30 14:29
-KY: source has not been checked in 23 hours at 03/30 14:35
+GU: source has not been checked in 13 hours at 03/30 14:24
+HI: source has not been checked in 23 hours at 03/30 14:26
+IA: source has not been checked in 17 hours at 03/30 16:09
+ID: source has not been checked in 22 hours at 03/30 16:16
+IL: source has not been checked in 41 hours at 03/30 16:31
+IL: death value (73) is a 12% increase, expected: 0 to 10%
+IN: source has not been checked in 28 hours at 03/30 14:29
+KY: source has not been checked in 24 hours at 03/30 14:35
 LA: death value (185) is a 23% increase, expected: 0 to 10%
-MA: source has not been checked in 28 hours at 03/30 14:37
+MA: death value (56) is a 17% increase, expected: 0 to 10%
 ME: total value (3,669) is a 1% increase, expected: 5 to 50%
-MI: source has not been checked in 29 hours at 03/30 14:39
-MN: source has not been checked in 16 hours at 03/30 14:21
-MO: source has not been checked in 24 hours at 03/30 14:40
-MP: source has not been checked in 15 hours at 03/30 14:41
-MS: source has not been checked in 21 hours at 03/30 14:34
+MI: death value (184) is a 39% increase, expected: 0 to 10%
+MN: source has not been checked in 17 hours at 03/30 14:21
+MP: source has not been checked in 16 hours at 03/30 14:41
+MS: source has not been checked in 22 hours at 03/30 14:34
 MT: negative value (3,961) is a -4% increase, expected: 5 to 50%
 MT: total value (4,132) is a -4% increase, expected: 5 to 50%
-NH: source has not been checked in 31 hours at 03/30 14:42
-NJ: source has not been checked in 27 hours at 03/30 14:48
+NH: source has not been checked in 32 hours at 03/30 16:25
+NH: positive value (314) is a 47% increase, expected: 5 to 40%
+NJ: source has not been checked in 28 hours at 03/30 14:48
 NJ: death value (198) is a 23% increase, expected: 0 to 10%
-NM: source has not been checked in 40 hours at 03/30 15:45
+NM: source has not been checked in 41 hours at 03/30 15:45
 NM: negative value (10,942) is a 2% increase, expected: 5 to 50%
 NM: total value (11,179) is a 2% increase, expected: 5 to 50%
-NY: source has not been checked in 31 hours at 03/30 16:02
+NY: source has not been checked in 32 hours at 03/30 16:02
 NY: death value (1,218) is a 26% increase, expected: 0 to 10%
 OH: death value (39) is a 34% increase, expected: 0 to 10%
 OK: negative value (1,207) is a 0% increase, expected: 5 to 50%
 OK: total value (1,688) is a 3% increase, expected: 5 to 50%
 PA: death value (49) is a 29% increase, expected: 0 to 10%
 PR: too many pending 72% (pending=794, total=1,105)
-RI: source has not been checked in 16 hours at 03/30 16:15
-SC: source has not been checked in 16 hours at 03/30 15:15
-VA: source has not been checked in 16 hours at 03/30 16:12
+RI: source has not been checked in 17 hours at 03/30 16:15
+VA: source has not been checked in 17 hours at 03/30 16:12
 VA: death value (25) is a 14% increase, expected: 0 to 10%
-WA: source has not been checked in 37 hours at 03/30 13:11
+WA: source has not been checked in 38 hours at 03/30 13:11
 WI: negative value (15,856) is a -4% increase, expected: 5 to 50%
 WI: total value (17,077) is a -3% increase, expected: 5 to 50%
-WY: source has not been checked in 16 hours at 03/30 14:01
+WY: source has not been checked in 17 hours at 03/30 14:01
