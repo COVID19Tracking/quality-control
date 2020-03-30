@@ -14,7 +14,8 @@ from typing import Tuple
 
 import udatetime
 from result_log import ResultLog
-from forecast import Forecast
+from forecast import Forecast, ForecastConfig
+
 
 def total(row, log: ResultLog):
     """Check that pendings, positive, and negative sum to the reported total"""
@@ -195,7 +196,7 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 
 FIT_THRESHOLDS = [0.95, 1.1]
 
-def expected_positive_increase(df: pd.DataFrame, log: ResultLog, plot_models = False):
+def expected_positive_increase(df: pd.DataFrame, log: ResultLog, config: ForecastConfig = None):
     """
     Fit state-level timeseries data to an exponential and a linear curve.
     Get expected vs actual case increase.
@@ -207,11 +208,13 @@ def expected_positive_increase(df: pd.DataFrame, log: ResultLog, plot_models = F
           data quality persepctive, this check would become annoying
     """
 
+    if not config: config = ForecastConfig()
+
     forecast = Forecast()
     forecast.fit(df)
 
-    if plot_models:
-        forecast.plot("./images")
+    if config.plot_models:
+        forecast.plot(config.images_dir)
 
     state = forecast.state
     date = forecast.date

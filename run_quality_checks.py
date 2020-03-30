@@ -8,8 +8,11 @@ from datetime import datetime
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 
 import udatetime
+import util
+
 from data_source import DataSource
 from  result_log import ResultLog
+from forecast import ForecastConfig
 import checks
 
 def check_working(ds: DataSource) -> ResultLog:
@@ -59,7 +62,7 @@ def check_current(ds: DataSource) -> ResultLog:
     return log
 
 
-def check_history(ds: DataSource, plot_models=False) -> ResultLog:
+def check_history(ds: DataSource, config: ForecastConfig) -> ResultLog:
     """
     Check the history
     """
@@ -71,11 +74,11 @@ def check_history(ds: DataSource, plot_models=False) -> ResultLog:
     for state in df["state"].drop_duplicates().values:
         state_df = df.loc[df["state"] == state]
         checks.monotonically_increasing(state_df, log)
-        checks.expected_positive_increase(state_df, log, plot_models=plot_models)
+        checks.expected_positive_increase(state_df, log, config)
 
     return log
 
-def load_args_parser() -> ArgumentParser:
+def load_args_parser(config) -> ArgumentParser:
     " load arguments parser "
 
     parser = ArgumentParser(
@@ -97,9 +100,16 @@ def load_args_parser() -> ArgumentParser:
         '-x', '--history', dest='check_history', action='store_true', default=False,
         help='check the history (only)')
 
+    plot_models = config["MODEL"]["plot_models"] == "True"
+
     parser.add_argument(
-        '--plot', dest='plot_models', action='store_true', default=False,
+        '--plot', dest='plot_models', action='store_true', default=plot_models,
         help='plot the model curves')
+
+    parser.add_argument(
+        '--images_dir',
+        default=config["MODEL"]["images_dir"],
+        help='directory for model curves')
 
     return parser
 
@@ -107,7 +117,8 @@ def main() -> None:
 
     # pylint: disable=no-member
 
-    parser = load_args_parser()
+    config = util.read_config_file("quality-control")
+    parser = load_args_parser(config)
     args = parser.parse_args(sys.argv)
 
     if not args.check_working and not args.check_daily and not args.check_history:
@@ -115,6 +126,10 @@ def main() -> None:
         args.check_working = True
         args.check_daily = True
         args.check_history = True
+
+    config = ForecastConfig(images_dir=args.images_dir, plot_models=args.plot_models)
+    if config.plot_models:
+        logger.warning(f"  [save forecast curves to {args.images_dir}]")
 
     if len(args.state) != 0:
         logger.error("  [states filter not implemented]")
@@ -134,7 +149,7 @@ def main() -> None:
 
     if args.check_history:
         logger.info("--| QUALITY CONTROL --- HISTORY |-----------------------------------------------------------")
-        log = check_history(ds, plot_models=args.plot_models)
+        log = check_history(ds, config=config)
         log.print()
 
 
