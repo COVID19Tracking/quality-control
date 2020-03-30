@@ -69,10 +69,10 @@ def check_history(ds: DataSource) -> ResultLog:
     log = ResultLog()
 
     for state in df["state"].drop_duplicates().values:
-
         state_df = df.loc[df["state"] == state]
         checks.monotonically_increasing(state_df, log)
-        checks.expected_increase(state_df, log)
+        checks.expected_positive_increase(state_df, log)
+
     return log
 
 def load_args_parser() -> ArgumentParser:
