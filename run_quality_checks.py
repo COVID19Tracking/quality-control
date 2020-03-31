@@ -24,11 +24,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
     """
 
-    logger.info("check working")
-
-    if config.plot_models and config.save_results:
-        raise Exception("plotting enabled")
-    
+    logger.info("check working")    
     log = ResultLog()
 
     # targetDate is the date that the dev sheet is currently working on.
