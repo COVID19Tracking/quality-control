@@ -5,3 +5,4 @@ quality-control.local.ini
 ~*.xlsx
 .env
 .vscode
+results/*.hd5

@@ -15,6 +15,9 @@ from result_log import ResultLog
 from qc_config import QCConfig
 import checks
 
+from forecast_io import load_forecast_hd5
+from forecast_plot import plot_to_file
+
 def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     """
     Check unpublished results in the working google sheet
@@ -61,6 +64,15 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
             df_counties = ds.counties[ds.counties.state == row.state]
             if not df_counties.empty:
                 checks.counties_rollup_to_state(row, df_counties, "working", log)
+
+
+    # run loop at end, insted of during run
+    if config.plot_models and config.save_results:
+        for row in df.itertuples():
+            print(row)
+            forecast = load_forecast_hd5(config.results_dir, row.state, d)
+            plot_to_file(forecast, f"{config.images_dir}/working", checks.FIT_THRESHOLDS)
+
 
     return log
 
@@ -149,8 +161,13 @@ def load_args_parser(config) -> ArgumentParser:
         '-x', '--history', dest='check_history', action='store_true', default=False,
         help='check the history (only)')
 
+    save_results = config["CHECKS"]["save_results"] == "True"
     enable_counties = config["CHECKS"]["enable_counties"] == "True"
     plot_models = config["MODEL"]["plot_models"] == "True"
+
+    parser.add_argument(
+        '--save', dest='save_results', action='store_true', default=save_results,
+        help='save results to file')
 
     parser.add_argument(
         '--counties', dest='enable_counties', action='store_true', default=enable_counties,
@@ -161,6 +178,10 @@ def load_args_parser(config) -> ArgumentParser:
         help='plot the model curves')
 
 
+    parser.add_argument(
+        '--results_dir',
+        default=config["CHECKS"]["results_dir"],
+        help='directory for results files')
     parser.add_argument(
         '--images_dir',
         default=config["MODEL"]["images_dir"],
@@ -183,9 +204,14 @@ def main() -> None:
         args.check_history = True
 
     config = QCConfig(
+        results_dir=args.results_dir, 
+        save_results=args.save_results,
+        enable_counties=args.enable_counties,
         images_dir=args.images_dir, 
         plot_models=args.plot_models,
-        enable_counties=args.enable_counties)
+    )
+    if config.save_results:
+        logger.warning(f"  [save results to {args.results_dir}]")
     if config.plot_models:
         logger.warning(f"  [save forecast curves to {args.images_dir}]")
 

@@ -11,6 +11,8 @@ google-auth-oauthlib
 # for forecast
 scipy
 matplotlib
+h5py
+tables
 
 # for flask
 flask

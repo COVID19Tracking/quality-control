@@ -24,6 +24,7 @@ from forecast import Forecast
 from qc_config import QCConfig
 
 from forecast_plot import plot_to_file
+from forecast_io import save_forecast_hd5, load_forecast_hd5
 
 START_OF_TIME = udatetime.naivedatetime_as_eastern(datetime(2020,1,2))
 
@@ -372,7 +373,9 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
     forecast.fit(history)
     forecast.project(current)
 
-    if config.plot_models:
+    if config.save_results:
+        save_forecast_hd5(forecast, config.results_dir)
+    elif config.plot_models:
         plot_to_file(forecast, f"{config.images_dir}/{context}", FIT_THRESHOLDS)
 
     state = forecast.state

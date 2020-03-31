@@ -38,7 +38,7 @@ class Forecast():
         self.expected_exp = 0
         self.expected_linear = 0
 
-        self.case_df: pd.DataFrame = None
+        self.cases_df: pd.DataFrame = None
         self.projection_index = None
         self.fitted_linear_params = None
         self.fitted_exp_params = None
@@ -57,11 +57,11 @@ class Forecast():
         self.df = df
         self.state = df["state"].values[0]
 
-        self.cases_df = (self.df
-            .sort_values("date", ascending=True)
-            .reset_index(drop=True)
-            .rename_axis('index')
-            .reset_index())
+        self.cases_df = self.df \
+            .sort_values("date", ascending=True) \
+            .reset_index(drop=True) \
+            .rename_axis('index') \
+            .reset_index()
 
         to_fit_exp = self.cases_df
         to_fit_linear = self.cases_df[-4:]
