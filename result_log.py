@@ -3,10 +3,13 @@ import json
 import io
 import pandas as pd
 import numpy as np
+import udatetime
 
 class ResultLog():
 
     def __init__(self):
+        self.loaded_at = udatetime.now_as_eastern()
+
         self._infos = []
         self._warnings = []
         self._errors = []

@@ -11,3 +11,7 @@ google-auth-oauthlib
 # for forecast
 scipy
 matplotlib
+
+# for flask
+flask
+Pyro4

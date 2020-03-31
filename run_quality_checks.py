@@ -21,6 +21,8 @@ def check_working(ds: DataSource, config: ForecastConfig) -> ResultLog:
     https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
     """
 
+    logger.info("check working")
+
     log = ResultLog()
 
     # targetDate is the date that the dev sheet is currently working on.
@@ -67,6 +69,8 @@ def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
     Check the current published results
     """
 
+    logger.info("check current")
+
     log = ResultLog()
 
     df = ds.current
@@ -108,6 +112,8 @@ def check_history(ds: DataSource) -> ResultLog:
     """
     Check the history
     """
+
+    logger.info("check history")
 
     df = ds.history
 
