@@ -206,7 +206,7 @@ def less_recovered_than_positive(row, log: ResultLog):
 def pendings_rate(row, log: ResultLog):
     """Check that pendings are not more than 20% of total"""
 
-    n_pos, n_neg, n_pending, n_deaths = row.positive, row.negative, row.pending, row.death
+    n_pos, n_neg, n_pending = row.positive, row.negative, row.pending
     n_tot = n_pos + n_neg
     percent_pending = 100.0 * n_pending / n_tot if n_tot > 0 else 0.0
 
@@ -217,27 +217,32 @@ def pendings_rate(row, log: ResultLog):
         if percent_pending > 80.0:
             log.warning(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
 
-def counties_rollup_to_state(row, counties: pd.DataFrame, context: str, log: ResultLog):
+
+# ----------------------------------------------------------------
+
+COUNTY_ERROR_THRESHOLDS = {
+    "positive": .1,
+    "death": .2
+}
+
+def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
     """
     Check that county totals from NYT, CSBS, CDS datasets are
     about equal to the reported state totals. Metrics compared are:
-
         - positive cases
-        - patient deths
-        - patient recoveries (for "working" context only)
+        - patient deaths
     """
+    if row.positive > 20:
+        pos_error =  abs(counties["cases"] - row.positive).min() / row.positive
+        if pos_error > COUNTY_ERROR_THRESHOLDS["positive"]:
+            closest_pos = int(round(pos_error * row.positive + row.positive))
+            log.error(row.state, f"county aggregate for positive tests does not match state totals (state: {row.positive}, county: {closest_pos})")
 
-    rollup = counties.groupby("state").sum().reset_index().to_dict(orient='records')[0]
-
-    if not (rollup["cases_min"] <= row.positive <= rollup["cases_max"]):
-        log.error(row.state, f"county aggregate for positive tests does not match state totals (state: {row.positive}, county range: {rollup['cases_min']} to {rollup['cases_max']})")
-
-    if not (rollup["deaths_min"] <= row.death <= rollup["deaths_max"]):
-        log.error(row.state, f"county aggregate for patient deaths does not match state totals (state: {row.death}, county range: {rollup['deaths_min']} to {rollup['deaths_max']})")
-
-    if context is not "current":
-        if not (rollup["recovered_min"] <= row.recovered <= rollup["recovered_max"]):
-            log.warning(row.state, f"county aggregate for patient recoveries does not match state totals (state: {row.recovered}, county range: {rollup['recovered_min']} to {rollup['recovered_max']})")
+    if row.death > 20:
+        death_error = abs(counties["deaths"] - row.death).min() / row.death
+        if death_error > COUNTY_ERROR_THRESHOLDS["death"]:
+            closest_death = int(round(death_error * row.death + row.death))
+            log.error(row.state, f"county aggregate for patient deaths does not match state totals (state: {row.death}, county: {closest_death})")
 
 
 # ----------------------------------------------------------------
@@ -254,8 +259,6 @@ EXPECTED_PERCENT_THRESHOLDS = {
     "death": (0,10),
     "total": (5,50)
 }
-
-
 
 def days_since_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, int]:
 

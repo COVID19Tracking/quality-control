@@ -40,7 +40,7 @@ class DataSource:
         self._cds_counties: pd.DataFrame = None
         self._csbs_counties: pd.DataFrame = None
         self._nyt_counties: pd.DataFrame = None
-        self._counties: pd.DataFrame = None
+        self._county_rollup: pd.DataFrame = None
 
 
     @property
@@ -86,24 +86,23 @@ class DataSource:
         return self._nyt_counties
 
     @property
-    def counties(self) -> pd.DataFrame:
+    def county_rollup(self) -> pd.DataFrame:
         """ return a single county dataset with median of select metrics """
 
         metrics = ["cases", "deaths","recovered"]
 
-        if self._counties is None:
+        if self._county_rollup is None:
             long_df = pd.concat([self.cds_counties, self.csbs_counties, self.nyt_counties],
                                  axis=0, sort=False)
 
-            self._counties = long_df \
-                .groupby(["state", "county"])[metrics] \
-                .agg(["min", "max"]) \
+            self._county_rollup = long_df \
+                .groupby(["state", "source"])[metrics] \
+                .sum() \
                 .fillna(0) \
-                .astype(int)
-            self._counties.columns = ["_".join(x) for x in self._counties.columns.ravel()]
-            self._counties = self._counties.reset_index()
+                .astype(int) \
+                .reset_index()
 
-        return self._counties
+        return self._county_rollup
 
 
     def load_working(self) -> pd.DataFrame:
