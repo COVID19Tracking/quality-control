@@ -8,7 +8,7 @@ jobs:
       - run:
           command:
             pip install -r requirements.txt
-      -run:
+      - run:
         command:
             python run_quality_checks.py
 
