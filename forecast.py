@@ -5,17 +5,8 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.optimize import curve_fit
-import matplotlib
-import matplotlib.pyplot as plt
-import warnings
 from typing import Tuple
 
-warnings.filterwarnings('ignore')
-
-
-def _format_date(date:str) -> str:
-    """return YYYYmmdd as YYYY-mm-dd"""
-    return f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
 def _exp_fit(x: float, a: float, b: float) -> float:
     return a * np.exp(b * x)
@@ -59,6 +50,8 @@ class Forecast():
         self.fitted_linear_params = None
         self.fitted_exp_params = None
 
+
+
     @property
     def results(self) -> Tuple[int, int, int]:
         "Get the results from the model"
@@ -93,37 +86,7 @@ class Forecast():
         self.expected_exp = _exp_fit(self.projection_index, *self.fitted_exp_params).round().astype(int)
         self.expected_linear = _linear_fit(self.projection_index, *self.fitted_linear_params).round().astype(int)
 
-    def plot(self, image_dir: str, fit_thresholds: list):
-        "Plot case growth (expected and actuals)"
-
-        to_plot = self.cases_df[["index", "positive"]].append(
-            {"index":self.projection_index, "positive":self.actual_value}, ignore_index=True)
-        exp_fit = _exp_fit(to_plot["index"], *self.fitted_exp_params)
-        linear_fit = _linear_fit(to_plot["index"], *self.fitted_linear_params)
-
-        matplotlib.style.use('ggplot')
-        plt.figure(figsize=(9,15))
-
-        ax = to_plot.plot.bar(x="index", y="positive", color="gray", alpha=.7, label="actual positives growth")
-        plt.plot(to_plot["index"], linear_fit, color="black", label="projected growth")
-        plt.plot(to_plot["index"], exp_fit, color="red", label="exponential fit")
-
-        plt.vlines(self.projection_index, linear_fit[self.projection_index], linear_fit[self.projection_index]*fit_thresholds[0], colors="black", linestyles="dashed")
-        plt.vlines(self.projection_index, exp_fit[self.projection_index], exp_fit[self.projection_index]*fit_thresholds[1], colors="red", linestyles="dashed")
-
-        plotted_dates = [_format_date(str(d)) for d in np.arange(
-            self.cases_df.date.min(), int(self.date.replace("-",""))+1)]
-        plt.title(f"{self.state} ({self.date}): {self.actual_value} positives, expected between {self.expected_linear} and {self.expected_exp}")
-        ax.set_xticklabels(plotted_dates, rotation=90)
-        plt.xlabel("Day")
-        plt.ylabel("Number of positive cases")
-        plt.ylim(0, np.ceil(max(self.results)*1.2))
-        plt.legend()
-
-        # TODO: Might want to save these to s3?
-        # This write-to-file step adds ~1 sec of runtime / state
-
-        if not os.path.isdir(image_dir): os.makedirs(image_dir)
-
-        fn = f"predicted_positives_{self.state}_{self.date}.png"
-        plt.savefig(os.path.join(image_dir, fn), dpi=250, bbox_inches = "tight")
+    # move to seperate file
+    #def plot(self, image_dir: str, fit_thresholds: list):
+    #    "Plot case growth (expected and actuals)"
+    #    pass

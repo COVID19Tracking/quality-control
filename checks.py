@@ -22,6 +22,8 @@ import udatetime
 from result_log import ResultLog
 from forecast import Forecast, ForecastConfig
 
+from forecast_plot import plot_to_file
+
 START_OF_TIME = udatetime.naivedatetime_as_eastern(datetime(2020,1,2))
 
 
@@ -370,7 +372,7 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
     forecast.project(current)
 
     if config.plot_models:
-        forecast.plot(f"{config.images_dir}/{context}", FIT_THRESHOLDS)
+        plot_to_file(forecast, f"{config.images_dir}/{context}", FIT_THRESHOLDS)
 
     state = forecast.state
     date = forecast.date
