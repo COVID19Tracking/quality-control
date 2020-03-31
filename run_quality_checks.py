@@ -11,7 +11,7 @@ import udatetime
 import util
 
 from data_source import DataSource
-from  result_log import ResultLog
+from result_log import ResultLog
 from forecast import ForecastConfig
 import checks
 
@@ -28,6 +28,8 @@ def check_working(ds: DataSource, config: ForecastConfig) -> ResultLog:
     # targetDateEt is the time that should be used on any 'staleness' checks
 
     d, phase = checks.current_time_and_phase()
+
+    ds._target_date = d
 
     df = ds.working
     df["targetDate"] = d.year * 10000 + d.month * 100 + d.day
@@ -53,6 +55,10 @@ def check_working(ds: DataSource, config: ForecastConfig) -> ResultLog:
         checks.increasing_values(row, df_history, log)
         checks.expected_positive_increase(row, df_history, log, "working", config)
 
+        df_counties = ds.counties[ds.counties.state == row.state]
+        if not df_counties.empty:
+            checks.counties_rollup_to_state(row, df_counties, log)
+
     return log
 
 
@@ -71,9 +77,12 @@ def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
     # setup run settings equivalent to publish date at 5PM
     s = str(publish_date)
     y,m,d = int(s[0:4]), int(s[4:6]), int(s[6:8])
+    publish_timestamp = udatetime.naivedatetime_as_eastern(datetime(y, m, d, 12+5))
+
+    ds.target_date = publish_timestamp
 
     df["targetDate"] = publish_date
-    df["targetDateEt"] = udatetime.naivedatetime_as_eastern(datetime(y, m, d, 12+5))
+    df["targetDateEt"] = publish_timestamp
     df["lastCheckEt"] = df["targetDateEt"]
     df["phase"] = "publish"
 
@@ -87,6 +96,10 @@ def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
         df_history = ds.history[ds.history.state == row.state]
         checks.increasing_values(row, df_history, log)
         checks.expected_positive_increase(row, df_history, log, "current", config)
+
+        df_counties = ds.counties[ds.counties.state == row.state]
+        if not df_counties.empty:
+            checks.counties_rollup_to_state(row, df_counties, log)
 
     return log
 
