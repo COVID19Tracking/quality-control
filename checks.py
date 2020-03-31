@@ -10,7 +10,12 @@
 #   errors are reported.  At certain times, fields like checked are expected
 #   to be cleared.
 #
-# *** WHEN YOU CHANGE A CHECK THAT IMPACTS WORKING, MAKE SURE TO UPDATE THE EXCEL TRACKING DOCUMENT ***
+# To add a new check:
+#    1. create the routine here
+#    2. add it to the calling routines in run_quality_checks
+#    3. put it behind the experimental flag (config.enable_experimental) at first
+#    4. WHEN YOU CHANGE A CHECK THAT IMPACTS WORKING, MAKE SURE TO UPDATE THE EXCEL TRACKING DOCUMENT
+#
 
 
 from datetime import datetime
@@ -232,7 +237,7 @@ def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
         - positive cases
         - patient deaths
     """
-    if row.positive > 20:
+    if row.positive > 100:
         pos_error =  abs(counties["cases"] - row.positive).min() / row.positive
         if pos_error > COUNTY_ERROR_THRESHOLDS["positive"]:
             closest_pos = int(round(pos_error * row.positive + row.positive))

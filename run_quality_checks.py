@@ -60,10 +60,9 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
         checks.increasing_values(row, df_history, log)
         checks.expected_positive_increase(row, df_history, log, "working", config)
 
-        if config.enable_counties:
-            df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
-            if not df_county_rollup.empty:
-                checks.counties_rollup_to_state(row, df_county_rollup, log)
+        df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
+        if not df_county_rollup.empty:
+            checks.counties_rollup_to_state(row, df_county_rollup, log)
 
 
     # run loop at end, insted of during run
@@ -161,7 +160,7 @@ def load_args_parser(config) -> ArgumentParser:
         help='check the history (only)')
 
     save_results = config["CHECKS"]["save_results"] == "True"
-    enable_counties = config["CHECKS"]["enable_counties"] == "True"
+    enable_experimental = config["CHECKS"]["enable_experimental"] == "True"
     plot_models = config["MODEL"]["plot_models"] == "True"
 
     parser.add_argument(
@@ -169,8 +168,8 @@ def load_args_parser(config) -> ArgumentParser:
         help='save results to file')
 
     parser.add_argument(
-        '--counties', dest='enable_counties', action='store_true', default=enable_counties,
-        help='enable counties check')
+        '-exp', '--experimental', dest='enable_experimental', action='store_true', default=enable_experimental,
+        help='enable experimental checks')
 
     parser.add_argument(
         '--plot', dest='plot_models', action='store_true', default=plot_models,
@@ -205,7 +204,7 @@ def main() -> None:
     config = QCConfig(
         results_dir=args.results_dir, 
         save_results=args.save_results,
-        enable_counties=args.enable_counties,
+        enable_experimental=args.enable_experimental,
         images_dir=args.images_dir, 
         plot_models=args.plot_models,
     )
