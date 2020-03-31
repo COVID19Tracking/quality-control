@@ -1,6 +1,12 @@
 #
 # Flask App for serving check results
-#
+# 
+# To test local:
+#     1. run_check_service.py to start a Pyro4 server
+#     2. set FLASK_APP=flaskapp.py
+#     3. flask run
+#     4. browse http://127.0.0.1:5000/
+
 
 import os
 from flask import Flask, request, jsonify, Response
