@@ -57,9 +57,9 @@ def check_working(ds: DataSource, config: ForecastConfig) -> ResultLog:
         checks.increasing_values(row, df_history, log)
         checks.expected_positive_increase(row, df_history, log, "working", config)
 
-        df_counties = ds.counties[ds.counties.state == row.state]
-        if not df_counties.empty:
-            checks.counties_rollup_to_state(row, df_counties, "working", log)
+        df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
+        if not df_county_rollup.empty:
+            checks.counties_rollup_to_state(row, df_county_rollup, log)
 
     return log
 
@@ -83,7 +83,7 @@ def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
     y,m,d = int(s[0:4]), int(s[4:6]), int(s[6:8])
     publish_timestamp = udatetime.naivedatetime_as_eastern(datetime(y, m, d, 12+5))
 
-    ds.target_date = publish_timestamp
+    ds._target_date = publish_timestamp
 
     df["targetDate"] = publish_date
     df["targetDateEt"] = publish_timestamp
@@ -101,9 +101,9 @@ def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
         checks.increasing_values(row, df_history, log)
         checks.expected_positive_increase(row, df_history, log, "current", config)
 
-        df_counties = ds.counties[ds.counties.state == row.state]
-        if not df_counties.empty:
-            checks.counties_rollup_to_state(row, df_counties, "current", log)
+        df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
+        if not df_county_rollup.empty:
+            checks.counties_rollup_to_state(row, df_county_rollup, log)
 
     return log
 
