@@ -241,13 +241,13 @@ def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
         pos_error =  abs(counties["cases"] - row.positive).min() / row.positive
         if pos_error > COUNTY_ERROR_THRESHOLDS["positive"]:
             closest_pos = int(round(pos_error * row.positive + row.positive))
-            log.error(row.state, f"county aggregate for positive tests does not match state totals (state: {row.positive}, county: {closest_pos})")
+            log.error(row.state, f"positive ({row.positive:,}) does not match county aggregate ({closest_pos:,})")
 
     if row.death > 20:
         death_error = abs(counties["deaths"] - row.death).min() / row.death
         if death_error > COUNTY_ERROR_THRESHOLDS["death"]:
             closest_death = int(round(death_error * row.death + row.death))
-            log.error(row.state, f"county aggregate for patient deaths does not match state totals (state: {row.death}, county: {closest_death})")
+            log.error(row.state, f"death ({row.death:,}) does not match county aggregate ({closest_death:,})")
 
 
 # ----------------------------------------------------------------
@@ -357,7 +357,7 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 
 # ----------------------------------------------------------------
 
-FIT_THRESHOLDS = [0.95, 1.2]
+FIT_THRESHOLDS = [0.9, 1.2]
 
 def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
                                 log: ResultLog, context: str, config: QCConfig=None):
@@ -396,10 +396,12 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
 
     if not (min_value <= actual_value <=  max_value):
 
+        y, m, d = date.split("-")
+
         #log.error(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
         if actual_value < expected_linear:
-            log.error(state, f"Positive cases ({actual_value:,}) for {date} showed a decrease beyond expected trend for last four days, expected at least {min_value:,}")
+            log.error(state, f"positive ({actual_value:,}) for {m}/{d} decellerated beyond linear trend, expected at least {min_value:,}")
         else:
-            log.error(state, f"Positive cases ({actual_value:,}) for {date} increased faster than exponential estimate,  expected at most {max_value:,}")
+            log.error(state, f"positive ({actual_value:,}) for {m}/{d} accelerated beyond exponential trend, expected at most {max_value:,}")
 
 
