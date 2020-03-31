@@ -293,7 +293,7 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
         prev_val = vec[0] if vec.size > 0 else 0
 
         if val < prev_val:
-            log.error(row.state, f"{c} value ({val:,}) is less than prior value ({prev_val:,})")
+            log.error(row.state, f"{c} ({val:,}) decreased, prior value is {prev_val:,}")
 
         # allow value to be the same if below a threshold
         if val < IGNORE_THRESHOLDS[c]: continue
@@ -309,11 +309,11 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
                 d = d[4:6] + "/" + d[6:8]
 
                 if prev_val >= 20 and (is_check_field_set or phase in ["publish", "update"]):
-                    log.error(row.state, f"{c} value ({val:,}) has not changed since {d} ({n_days} days)")
+                    log.error(row.state, f"{c} ({val:,}) has not changed since {d} ({n_days} days)")
                 else:
-                    log.warning(row.state, f"{c} value ({val:,}) has not changed since {d} ({n_days} days)")
+                    log.warning(row.state, f"{c} ({val:,}) has not changed since {d} ({n_days} days)")
             else:
-                log.error(row.state, f"{c} value ({val:,}) constant for all time")
+                log.error(row.state, f"{c} ({val:,}) constant for all time")
             continue
 
         p_observed = 100.0 * val / prev_val - 100.0
@@ -397,11 +397,12 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
     if not (min_value <= actual_value <=  max_value):
 
         y, m, d = date.split("-")
+        sd = "for {m}/{d}" if config.show_dates else ""
 
         #log.error(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
         if actual_value < expected_linear:
-            log.error(state, f"positive ({actual_value:,}) for {m}/{d} decellerated beyond linear trend, expected at least {min_value:,}")
+            log.error(state, f"positive ({actual_value:,}){sd} decellerated beyond linear trend, expected at least {min_value:,}")
         else:
-            log.error(state, f"positive ({actual_value:,}) for {m}/{d} accelerated beyond exponential trend, expected at most {max_value:,}")
+            log.error(state, f"positive ({actual_value:,}){sd} accelerated beyond exponential trend, expected at most {max_value:,}")
 
 
