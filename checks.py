@@ -213,13 +213,16 @@ def pendings_rate(row, log: ResultLog):
         if percent_pending > 80.0:
             log.warning(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
 
-def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
+def counties_rollup_to_state(row, counties: pd.DataFrame, context: str, log: ResultLog):
     """
     Check that county totals from NYT, CSBS, CDS datasets are
-    about equal to the reported state totals
+    about equal to the reported state totals. Metrics compared are:
+
+        - positive cases
+        - patient deths
+        - patient recoveries (for "working" context only)
     """
 
-    # positives, deaths, and recovered rates roll up correctly from county data
     rollup = counties.groupby("state").sum().reset_index().to_dict(orient='records')[0]
 
     if not (rollup["cases_min"] <= row.positive <= rollup["cases_max"]):
@@ -228,8 +231,9 @@ def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
     if not (rollup["deaths_min"] <= row.death <= rollup["deaths_max"]):
         log.error(row.state, f"county aggregate for patient deaths does not match state totals (state: {row.death}, county range: {rollup['deaths_min']} to {rollup['deaths_max']})")
 
-    if not (rollup["recovered_min"] <= row.recovered <= rollup["recovered_max"]):
-        log.warning(row.state, f"county aggregate for patient recoveries does not match state totals (state: {row.recovered}, county range: {rollup['recovered_min']} to {rollup['recovered_max']})")
+    if context is not "current":
+        if not (rollup["recovered_min"] <= row.recovered <= rollup["recovered_max"]):
+            log.warning(row.state, f"county aggregate for patient recoveries does not match state totals (state: {row.recovered}, county range: {rollup['recovered_min']} to {rollup['recovered_max']})")
 
 
 # ----------------------------------------------------------------

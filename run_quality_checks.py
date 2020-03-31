@@ -59,7 +59,7 @@ def check_working(ds: DataSource, config: ForecastConfig) -> ResultLog:
 
         df_counties = ds.counties[ds.counties.state == row.state]
         if not df_counties.empty:
-            checks.counties_rollup_to_state(row, df_counties, log)
+            checks.counties_rollup_to_state(row, df_counties, "working", log)
 
     return log
 
@@ -103,7 +103,7 @@ def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
 
         df_counties = ds.counties[ds.counties.state == row.state]
         if not df_counties.empty:
-            checks.counties_rollup_to_state(row, df_counties, log)
+            checks.counties_rollup_to_state(row, df_counties, "current", log)
 
     return log
 
