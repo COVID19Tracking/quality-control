@@ -38,10 +38,10 @@ class CheckServer:
         config = util.read_config_file("quality-control")
         self.config = QCConfig(
             results_dir=config["CHECKS"]["results_dir"], 
-            enable_experimental=config["CHECKS"]["enable_experimental"],
-            save_results=config["CHECKS"]["save_results"],
+            enable_experimental=config["CHECKS"]["enable_experimental"] == "True",
+            save_results=config["CHECKS"]["save_results"] == "True",
             images_dir=config["MODEL"]["images_dir"], 
-            plot_models=config["MODEL"]["plot_models"],
+            plot_models=config["MODEL"]["plot_models"] == "True",
         )
 
         self.ds = DataSource()

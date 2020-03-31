@@ -26,6 +26,9 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
 
     logger.info("check working")
 
+    if config.plot_models and config.save_results:
+        raise Exception("plotting enabled")
+    
     log = ResultLog()
 
     # targetDate is the date that the dev sheet is currently working on.
@@ -46,31 +49,42 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     # *** WHEN YOU CHANGE A CHECK THAT IMPACTS WORKING, MAKE SURE TO UPDATE THE EXCEL TRACKING DOCUMENT ***
 
     for row in df.itertuples():
-        checks.total(row, log)
-        #checks.total_tests(row, log)
-        checks.last_update(row, log)
-        checks.last_checked(row, log)
-        checks.checkers_initials(row, log)
-        checks.positives_rate(row, log)
-        checks.death_rate(row, log)
-        checks.less_recovered_than_positive(row, log)
-        checks.pendings_rate(row, log)
+        try:
 
-        df_history = ds.history[ds.history.state == row.state]
-        checks.increasing_values(row, df_history, log)
-        checks.expected_positive_increase(row, df_history, log, "working", config)
+            checks.total(row, log)
+            #checks.total_tests(row, log)
+            checks.last_update(row, log)
+            checks.last_checked(row, log)
+            checks.checkers_initials(row, log)
+            checks.positives_rate(row, log)
+            checks.death_rate(row, log)
+            checks.less_recovered_than_positive(row, log)
+            checks.pendings_rate(row, log)
 
-        df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
-        if not df_county_rollup.empty:
-            checks.counties_rollup_to_state(row, df_county_rollup, log)
+            df_history = ds.history[ds.history.state == row.state]
+            checks.increasing_values(row, df_history, log)
+            checks.expected_positive_increase(row, df_history, log, "working", config)
 
+            df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
+            if not df_county_rollup.empty:
+                checks.counties_rollup_to_state(row, df_county_rollup, log)
+
+        except Exception as ex:
+            logger.exception(ex)
+            log.error(row.state, f"{ex}")
 
     # run loop at end, insted of during run
     if config.plot_models and config.save_results:
         for row in df.itertuples():
-            print(row)
-            forecast = load_forecast_hd5(config.results_dir, row.state, d)
-            plot_to_file(forecast, f"{config.images_dir}/working", checks.FIT_THRESHOLDS)
+            try:
+                forecast = load_forecast_hd5(config.results_dir, row.state, row.targetDate)
+                if forecast is None:
+                    logger.warning(f"Fould not load forecast for {row.state}/{row.targetDate}")
+                else:
+                    plot_to_file(forecast, f"{config.images_dir}/working", checks.FIT_THRESHOLDS)
+            except Exception as ex:
+                logger.exception(ex)
+                log.error(row.state, f"{ex}")
 
 
     return log

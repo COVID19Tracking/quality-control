@@ -26,8 +26,11 @@ def plot_to_file(forecast: Forecast, image_dir: str, fit_thresholds: list):
 
     global g_first_time
     if g_first_time:
-        logger.debug("  [loading plot libraries...]")
+        logger.debug("  [plot forecast]")
         g_first_time = False
+
+    if forecast is None:
+        raise Exception("Missing forecast")
 
     warnings.filterwarnings('ignore')
 

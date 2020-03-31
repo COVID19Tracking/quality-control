@@ -11,7 +11,7 @@
 from typing import List, Dict
 from loguru import logger
 import pandas as pd
-from pandas.io.json import json_normalize
+#from pandas.io.json import json_normalize
 from urllib.request import urlopen
 import json
 import numpy as np
@@ -223,7 +223,7 @@ class DataSource:
         response = urlopen("http://coronavirus-tracker-api.herokuapp.com/v2/locations?source=csbs")
         json_data = response.read().decode('utf-8', 'replace')
         d = json.loads(json_data)
-        csbs = json_normalize(d['locations'])
+        csbs = pd.json_normalize(d['locations'])
 
         # remove "extras"
         csbs = csbs \

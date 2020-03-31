@@ -2,6 +2,7 @@ import os
 import h5py
 import pandas as pd
 import numpy as np
+from loguru import logger
 
 from forecast_plot import Forecast
 
@@ -40,13 +41,18 @@ def save_forecast_hd5(forecast: Forecast, data_dir: str):
 
     
     os.rename(tmp_path, out_path)
+    logger.debug(f"   saved results to {out_path}")
 
 def load_forecast_hd5(data_dir: str, state: str, date: int) -> Forecast:
 
     fn = f"predicted_positives_{state}_{date}.hd5"
 
     path = os.path.join(data_dir, fn)
-    if not os.path.exists(path): return None
+    if not os.path.exists(path): 
+        logger.warning(f"   load results to {path} -- file missing")
+        return None
+
+    logger.debug(f"   load results to {path}")
 
     forecast = Forecast()
 
