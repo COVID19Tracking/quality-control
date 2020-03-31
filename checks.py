@@ -22,6 +22,8 @@ import udatetime
 from result_log import ResultLog
 from forecast import Forecast, ForecastConfig
 
+from forecast_plot import plot_to_file
+
 START_OF_TIME = udatetime.naivedatetime_as_eastern(datetime(2020,1,2))
 
 
@@ -202,7 +204,7 @@ def less_recovered_than_positive(row, log: ResultLog):
 def pendings_rate(row, log: ResultLog):
     """Check that pendings are not more than 20% of total"""
 
-    n_pos, n_neg, n_pending, n_deaths = row.positive, row.negative, row.pending, row.death
+    n_pos, n_neg, n_pending = row.positive, row.negative, row.pending
     n_tot = n_pos + n_neg
     percent_pending = 100.0 * n_pending / n_tot if n_tot > 0 else 0.0
 
@@ -212,6 +214,9 @@ def pendings_rate(row, log: ResultLog):
     else:
         if percent_pending > 80.0:
             log.warning(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
+
+
+# ----------------------------------------------------------------
 
 COUNTY_ERROR_THRESHOLDS = {
     "positive": .1,
@@ -252,8 +257,6 @@ EXPECTED_PERCENT_THRESHOLDS = {
     "death": (0,10),
     "total": (5,50)
 }
-
-
 
 def days_since_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, int]:
 
@@ -372,7 +375,7 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
     forecast.project(current)
 
     if config.plot_models:
-        forecast.plot(f"{config.images_dir}/{context}", FIT_THRESHOLDS)
+        plot_to_file(forecast, f"{config.images_dir}/{context}", FIT_THRESHOLDS)
 
     state = forecast.state
     date = forecast.date

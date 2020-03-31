@@ -4,27 +4,36 @@ import io
 import pandas as pd
 import numpy as np
 import udatetime
+from typing import Tuple
+import time
 
 class ResultLog():
 
     def __init__(self):
         self.loaded_at = udatetime.now_as_eastern()
+        self.start = time.process_time_ns()
 
         self._infos = []
         self._warnings = []
         self._errors = []
 
+    def _make(self, location: str, message: str) -> Tuple[str, str, int]:
+        end = time.process_time_ns()
+        delta_ms = int((end - self.start) * 1e-6)
+        self.start = end
+        return (location, message, delta_ms)
+
     def info(self, location: str, message: str) -> None:
         if message is None: raise Exception("Missing message")
-        self._infos.append((location, message))
+        self._infos.append(self._make(location, message))
 
     def warning(self, location: str, message: str) -> None:
         if message is None: raise Exception("Missing message")
-        self._warnings.append((location, message))
+        self._warnings.append(self._make(location, message))
 
     def error(self, location: str, message: str) -> None:
         if message is None: raise Exception("Missing message")
-        self._errors.append((location, message))
+        self._errors.append(self._make(location, message))
 
     # -----
 
@@ -35,20 +44,23 @@ class ResultLog():
         if len(self._errors) == 0 and len(self._warnings) == 0 and len(self._infos) == 0:
             print("[No Messages]")
 
+        def format_ms(ms: int):
+            return f" ({ms}ms)" if ms > 100 else ""
+
         if len(self._errors) > 0:
             print("=====| ERROR |===========")
-            for location, message in self._errors:
-                print(f"{location}: {message}")
+            for location, message, ms in self._errors:
+                print(f"{location}: {message}{format_ms(ms)}")
 
         if len(self._warnings) > 0:
             print("\n=====| WARNING |===========")
-            for location, message in self._warnings:
-                print(f"{location}: {message}")
+            for location, message, ms in self._warnings:
+                print(f"{location}: {message}{format_ms(ms)}")
 
         if len(self._infos) > 0:
             print("\n=====| INFO |===========")
-            for location, message in self._infos:
-                print(f"{location}: {message}")
+            for location, message, ms in self._infos:
+                print(f"{location}: {message}{format_ms(ms)}")
 
         print("")
 
@@ -56,9 +68,9 @@ class ResultLog():
     def to_json(self) -> str:
 
         result = {
-            "infomation": [ { "location": x[0], "message": x[1] } for x in self._infos ],
-            "warning": [ { "location": x[0], "message": x[1] } for x in self._warnings ],
-            "error": [ { "location": x[0], "message": x[1] } for x in self._errors ],
+            "infomation": [ { "location": x[0], "message": x[1], "ms": x[2] } for x in self._infos ],
+            "warning": [ { "location": x[0], "message": x[1], "ms": x[2] } for x in self._warnings ],
+            "error": [ { "location": x[0], "message": x[1], "ms": x[2] } for x in self._errors ],
         }
         return json.dumps(result, indent=2)
 
@@ -69,20 +81,21 @@ class ResultLog():
         level = np.zeros(n_total, dtype=object)
         location = np.zeros(n_total, dtype=object)
         message = np.zeros(n_total, dtype=object)
+        time_ms = np.zeros(n_total, dtype=np.int)
 
         idx = 0
-        for loc, msg in self._errors:
-            level[idx], location[idx], message[idx] = "ERROR", loc, msg
+        for loc, msg, ms in self._errors:
+            level[idx], location[idx], message[idx], time_ms[idx] = "ERROR", loc, msg, ms
             idx += 1  
-        for loc, msg in self._warnings:
-            level[idx], location[idx], message[idx] = "WARNING", loc, msg
+        for loc, msg, ms in self._warnings:
+            level[idx], location[idx], message[idx], time_ms[idx] = "WARNING", loc, msg, ms
             idx += 1  
-        for loc, msg in self._infos:
-            level[idx], location[idx], message[idx] = "INFO", loc, msg
+        for loc, msg, ms in self._infos:
+            level[idx], location[idx], message[idx], time_ms[idx] = "INFO", loc, msg, ms
             idx += 1  
 
         df = pd.DataFrame({
-            "level": level, "location": location, "message": message
+            "level": level, "location": location, "message": message, "ms": time_ms
         })
         return df
 
