@@ -58,7 +58,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
             checks.pendings_rate(row, log)
 
             df_history = ds.history[ds.history.state == row.state]
-            checks.increasing_values(row, df_history, log)
+            checks.increasing_values(row, df_history, log, check_rate = False)
             checks.expected_positive_increase(row, df_history, log, "working", config)
 
             df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
@@ -120,7 +120,7 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
         checks.pendings_rate(row, log)
 
         df_history = ds.history[ds.history.state == row.state]
-        checks.increasing_values(row, df_history, log)
+        checks.increasing_values(row, df_history, log, check_rate = False)
         checks.expected_positive_increase(row, df_history, log, "current", config)
 
         df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]

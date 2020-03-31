@@ -274,7 +274,7 @@ def days_since_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, int]:
 
 #TODO: add date to dev worksheet so we don't have to pass it around
 
-def increasing_values(row, df: pd.DataFrame, log: ResultLog):
+def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
     """Check that new values more than previous values
 
     df contains the historical values (newest first).  offset controls how many days to look back.
@@ -318,10 +318,11 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog):
 
         p_observed = 100.0 * val / prev_val - 100.0
 
-        #TODO: estimate expected increase from recent history
-        p_min, p_max = EXPECTED_PERCENT_THRESHOLDS[c]
-        if p_observed < p_min or p_observed > p_max:
-            log.warning(row.state, f"{c} value ({val:,}) is a {p_observed:.0f}% increase, expected: {p_min:.0f} to {p_max:.0f}%")
+        # this change is handled by model now. leave it in case we want to switch back - Josh
+        if check_rate:
+            p_min, p_max = EXPECTED_PERCENT_THRESHOLDS[c]
+            if p_observed < p_min or p_observed > p_max:
+                log.warning(row.state, f"{c} value ({val:,}) is a {p_observed:.0f}% increase, expected: {p_min:.0f} to {p_max:.0f}%")
 
 
 # ----------------------------------------------------------------
@@ -356,7 +357,7 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 
 # ----------------------------------------------------------------
 
-FIT_THRESHOLDS = [0.95, 1.1]
+FIT_THRESHOLDS = [0.95, 1.2]
 
 def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
                                 log: ResultLog, context: str, config: QCConfig=None):
@@ -394,10 +395,11 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
     max_value = int(FIT_THRESHOLDS[1] * expected_exp)
 
     if not (min_value <= actual_value <=  max_value):
-        direction = "increase"
-        if actual_value < expected_linear:
-            direction = "drop"
 
-        log.error(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
+        #log.error(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
+        if actual_value < expected_linear:
+            log.error(state, f"Positive cases ({actual_value:,}) for {date} showed a decrease beyond expected trend for last four days, expected at least {min_value:,}")
+        else:
+            log.error(state, f"Positive cases ({actual_value:,}) for {date} increased faster than exponential estimate,  expected at most {max_value:,}")
 
 
