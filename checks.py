@@ -20,7 +20,8 @@ from typing import Tuple
 
 import udatetime
 from result_log import ResultLog
-from forecast import Forecast, ForecastConfig
+from forecast import Forecast
+from qc_config import QCConfig
 
 from forecast_plot import plot_to_file
 
@@ -349,7 +350,7 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 FIT_THRESHOLDS = [0.95, 1.1]
 
 def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
-                                log: ResultLog, context: str, config: ForecastConfig=None):
+                                log: ResultLog, context: str, config: QCConfig=None):
     """
     Fit state-level daily positives data to an exponential and a linear curve.
     Get expected vs actual case increase to determine if current positives
@@ -362,7 +363,7 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
           data quality perspective, this check would become annoying
     """
 
-    if not config: config = ForecastConfig()
+    if not config: config = QCConfig()
 
     forecast_date = current.lastUpdateEt.to_pydatetime().strftime('%Y%m%d')
     history = history.loc[history["date"].astype(str) != forecast_date]

@@ -12,10 +12,10 @@ import util
 
 from data_source import DataSource
 from result_log import ResultLog
-from forecast import ForecastConfig
+from qc_config import QCConfig
 import checks
 
-def check_working(ds: DataSource, config: ForecastConfig) -> ResultLog:
+def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     """
     Check unpublished results in the working google sheet
     https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
@@ -57,14 +57,15 @@ def check_working(ds: DataSource, config: ForecastConfig) -> ResultLog:
         checks.increasing_values(row, df_history, log)
         checks.expected_positive_increase(row, df_history, log, "working", config)
 
-        df_counties = ds.counties[ds.counties.state == row.state]
-        if not df_counties.empty:
-            checks.counties_rollup_to_state(row, df_counties, "working", log)
+        if config.enable_counties:
+            df_counties = ds.counties[ds.counties.state == row.state]
+            if not df_counties.empty:
+                checks.counties_rollup_to_state(row, df_counties, "working", log)
 
     return log
 
 
-def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
+def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     """
     Check the current published results
     """
@@ -101,9 +102,10 @@ def check_current(ds: DataSource, config: ForecastConfig) -> ResultLog:
         checks.increasing_values(row, df_history, log)
         checks.expected_positive_increase(row, df_history, log, "current", config)
 
-        df_counties = ds.counties[ds.counties.state == row.state]
-        if not df_counties.empty:
-            checks.counties_rollup_to_state(row, df_counties, "current", log)
+        if config.enable_counties:
+            df_counties = ds.counties[ds.counties.state == row.state]
+            if not df_counties.empty:
+                checks.counties_rollup_to_state(row, df_counties, "current", log)
 
     return log
 
@@ -147,11 +149,17 @@ def load_args_parser(config) -> ArgumentParser:
         '-x', '--history', dest='check_history', action='store_true', default=False,
         help='check the history (only)')
 
+    enable_counties = config["CHECKS"]["enable_counties"] == "True"
     plot_models = config["MODEL"]["plot_models"] == "True"
+
+    parser.add_argument(
+        '--counties', dest='enable_counties', action='store_true', default=enable_counties,
+        help='enable counties check')
 
     parser.add_argument(
         '--plot', dest='plot_models', action='store_true', default=plot_models,
         help='plot the model curves')
+
 
     parser.add_argument(
         '--images_dir',
@@ -174,7 +182,10 @@ def main() -> None:
         args.check_daily = True
         args.check_history = True
 
-    config = ForecastConfig(images_dir=args.images_dir, plot_models=args.plot_models)
+    config = QCConfig(
+        images_dir=args.images_dir, 
+        plot_models=args.plot_models,
+        enable_counties=args.enable_counties)
     if config.plot_models:
         logger.warning(f"  [save forecast curves to {args.images_dir}]")
 

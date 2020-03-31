@@ -24,13 +24,6 @@ def _get_distribution_fit(x: pd.Series, y: pd.Series, dist_func) -> np.array:
     popt, pcov = curve_fit(dist_func, x, y, p0=(4, 0.1))
     return popt
 
-class ForecastConfig():
-    " configuration options for how to run forecast model "
-
-    def __init__(self, images_dir = "images", plot_models = False):
-        self.images_dir = images_dir
-        self.plot_models = plot_models
-
 
 class Forecast():
     " simple forecast model for estimating if new values are reasonable "

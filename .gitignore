@@ -4,3 +4,4 @@ images
 quality-control.local.ini
 ~*.xlsx
 .env
+.vscode

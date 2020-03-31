@@ -12,7 +12,7 @@ import run_quality_checks
 
 from result_log import ResultLog
 from data_source import DataSource
-from forecast import ForecastConfig
+from qc_config import QCConfig
 
 
 def is_out_of_date(log: ResultLog, cache_seconds: int) -> bool:
@@ -36,7 +36,10 @@ class CheckServer:
         self._history = None
 
         config = util.read_config_file("quality-control")
-        self.config = ForecastConfig(images_dir=config["MODEL"]["images_dir"], plot_models=config["MODEL"]["plot_models"])
+        self.config = QCConfig(
+            images_dir=config["MODEL"]["images_dir"], 
+            plot_models=config["MODEL"]["plot_models"],
+            enable_counties=config["CHECKS"]["enable_counties"])
 
         self.ds = DataSource()
 
