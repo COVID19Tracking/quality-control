@@ -19,6 +19,7 @@
 
 
 from datetime import datetime
+from loguru import logger
 import pandas as pd
 import numpy as np
 from typing import Tuple
@@ -121,7 +122,7 @@ def last_checked(row, log: ResultLog):
         if phase == "inactive":
             pass
         elif phase in ["publish", "update"]:
-            log.operational(row.state, f"check needed")
+            log.operational(row.state, f"last check ET (column AK) is blank")
         elif phase in ["prepare", "cleanup"]:
             pass
         return
@@ -131,14 +132,14 @@ def last_checked(row, log: ResultLog):
     if hours > 1.0:
         s_updated = updated_at.strftime('%m/%d %H:%M')
         s_checked = checked_at.strftime('%m/%d %H:%M')
-        log.operational(row.state, f"Last Check (column U) less than Last Update (column T)  ({hours:.0f} hours ago at {s_updated}, checked at {s_checked})")
+        log.operational(row.state, f"Last Check ET (column AJ) is {s_checked} which is less than Last Update ET (column AI)  {s_updated} by {hours:.0f} hours")
         return
 
     delta = target_date - checked_at
     hours = delta.total_seconds() / (60.0 * 60)
     if hours > 6.0:
         s_checked = checked_at.strftime('%m/%d %H:%M')
-        log.operational(row.state, f"Last Check (column U) has changed in {hours:.0f} hours ({s_checked} by {row.checker})")
+        log.operational(row.state, f"Last Check ET (column AJ) has not been updated in {hours:.0f} hours ({s_checked} by {row.checker})")
         return
 
 
@@ -162,13 +163,13 @@ def checkers_initials(row, log: ResultLog):
     if checker == "":
         if 0 < delta_hours < 5:
             s_checked = checked_at.strftime('%m/%d %H:%M')
-            log.operational(row.state, f"missing checker initials but checked date set recently (at {s_checked})")
+            log.operational(row.state, f"missing checker initials (column AK) but checked date set recently (at {s_checked})")
         elif is_near_release:
-            log.operational(row.state, f"missing checker initials")
+            log.operational(row.state, f"missing checker initials (column AK)")
         return
     if doubleChecker == "":
         if is_near_release:
-            log.operational(row.state, f"missing double-checker initials")
+            log.operational(row.state, f"missing double-checker initials (column AL)")
         return
 
     #elif hours > 18.0:
@@ -259,13 +260,6 @@ IGNORE_THRESHOLDS = {
     "positive": 100,
     "negative": 900,
     "death": 20,
-    "total": 1000
-}
-EXPECTED_PERCENT_THRESHOLDS = {
-    "positive": (5,40),
-    "negative": (5,50),
-    "death": (0,10),
-    "total": (5,50)
 }
 
 def days_since_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, int]:
@@ -277,29 +271,34 @@ def days_since_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, int]:
 
 #TODO: add date to dev worksheet so we don't have to pass it around
 
-def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
+def increasing_values(row, df: pd.DataFrame, log: ResultLog):
     """Check that new values more than previous values
 
     df contains the historical values (newest first).  offset controls how many days to look back.
+    consolidate lines if everything changed
     """
 
     df = df[df.date < row.targetDate]
 
     last_updated = row.lastUpdateEt
-    d = last_updated.year * 10000 + last_updated.month * 100 + last_updated.day
+    d_updated = last_updated.year * 10000 + last_updated.month * 100 + last_updated.day
+    d_last_change = 20200101
 
     dict_row = row._asdict()
 
+    trace = False
+
     is_same_messages = []
-    n_days, n_days_prev = -1, 0
-    for c in ["positive", "negative", "death", "total"]:
+    consolidate, n_days, n_days_prev = True, -1, 0
+    for c in ["positive", "negative", "death"]:
+        if trace: logger.debug(f"check {row.state} {c}")
         val = dict_row[c]
         vec = df[c].values
         prev_val = vec[0] if vec.size > 0 else 0
 
         if val < prev_val:
             log.data_quality(row.state, f"{c} ({val:,}) decreased, prior value is {prev_val:,}")
-            n_days_prev = -1 # force individual lines
+            consolidate = False
             continue
 
         # allow value to be the same if below a threshold
@@ -311,46 +310,49 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
 
         if val == -1000:
             log.operational(row.state, f"{c} value cannot be converted to a number")
-            n_days_prev = -1 # force individual lines
+            consolidate = False
             continue
 
         if val == prev_val:
             n_days, d = days_since_change(val, df[c], df["date"])
             if n_days >= 0:
-                sd = str(d)
-                sd = sd[4:6] + "/" + sd[6:8]
+                d_last_change = max(d_last_change, d)
 
                 if prev_val >= 20 and (is_check_field_set or phase in ["publish", "update"]):
+                    sd = str(d)
+                    sd = sd[4:6] + "/" + sd[6:8]
                     is_same_messages.append(f"{c} ({val:,}) hasn't changed since {sd} ({n_days} days)")
+                    if trace: logger.debug(f"{c} ({val:,}) hasn't changed since {sd} ({n_days} days)")
+
                 if n_days_prev == 0:
                     n_days_prev = n_days
                 elif n_days_prev != n_days:
-                    n_days_prev = -1 # force individual lines
+                    if trace: logger.debug(f"{c} ({val:,}) changed {n_days} days ago -> force individual lines ")
+                    consolidate = False
             else:
+                d_last_change = max(d_last_change, df["date"].values[-1])
                 log.data_source(row.state, f"{c} ({val:,}) constant for all time")
-                n_days_prev = -1 # force individual lines
+                if trace: logger.debug(f"{c} ({val:,}) constant -> force individual lines ")
+                consolidate = False
             continue
 
-        # this change is handled by model now. leave it in case we want to switch back - Josh
-        if check_rate:
-            p_observed = 100.0 * val / prev_val - 100.0
-            p_min, p_max = EXPECTED_PERCENT_THRESHOLDS[c]
-            if p_observed < p_min or p_observed > p_max:
-                log.warning(row.state, f"{c} value ({val:,}) is a {p_observed:.0f}% increase, expected: {p_min:.0f} to {p_max:.0f}%")
-                n_days_prev = -1 # force individual lines
+    if d_last_change == 20200101:
+        return
 
-    # only show one message if all valules are same
-    if n_days == n_days_prev:
-        d_updated = last_updated.year * 10000 + last_updated.month * 100 + last_updated.day
-        sd_updated = f"{last_updated.month}/{last_updated.day} {last_updated.hour:02}:{last_updated.minute:02}"
-        sd = str(d)
+    # alert if local time appears to updated incorrectly
+    elif d_last_change != d_updated:
+        sd = str(d_last_change)
         sd = sd[4:6] + "/" + sd[6:8]
-        if d != d_updated:
-            is_same_messages = [f"Source marked as update at {sd_updated} but values haven't changed since {sd} ({n_days} days)"]
-        else:
-            is_same_messages = [f"Source values haven't changed since {sd} ({n_days} days)"]
-    for m in is_same_messages: log.data_source(row.state, m)
+        sd_updated = f"{last_updated.month}/{last_updated.day} {last_updated.hour:02}:{last_updated.minute:02}"
+        log.operational(row.state, f"local time (column V) set to {sd_updated} but values haven't changed since {sd} ({n_days} days)")
 
+    # only show one message if all values are same
+    if  consolidate:
+        sd = str(d_last_change)
+        sd = sd[4:6] + "/" + sd[6:8]
+        log.data_source(row.state, f"positive/negative/deaths haven't changed since {sd} ({n_days} days)")
+    else:
+        for m in is_same_messages: log.data_source(row.state, m)
 
 
 # ----------------------------------------------------------------
