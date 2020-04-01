@@ -8,7 +8,7 @@ import udatetime
 import Pyro4
 from loguru import logger
 
-import run_quality_checks 
+from check_dataset import check_working  
 
 from result_log import ResultLog
 from data_source import DataSource
@@ -50,7 +50,7 @@ class CheckServer:
     @property 
     def working(self) -> ResultLog:
         if is_out_of_date(self._working, 60):
-            self._working = run_quality_checks.check_working(self.ds, self.config)  
+            self._working = check_working(self.ds, self.config)  
         return self._working
 
     @Pyro4.expose

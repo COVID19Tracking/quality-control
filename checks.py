@@ -346,7 +346,7 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
             error_dates = df_comparison.loc[(df_comparison[f"{col}_lag"] > df_comparison[col])]["date"]
             error_dates_str = error_dates.astype(str).str.cat(sep=", ")
 
-            log.error(state, f"{col} values decreased from the previous day (on {error_dates_str})")
+            log.data_quality(state, f"{col} values decreased from the previous day (on {error_dates_str})")
 
 # ----------------------------------------------------------------
 
@@ -392,9 +392,9 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
         y, m, d = date.split("-")
         sd = "for {m}/{d}" if config.show_dates else ""
 
-        #log.error(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
+        #log.data_quality(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
         if actual_value < expected_linear:
-            log.data_quality(state, f"positive ({actual_value:,}){sd} decellerated beyond linear trend, expected > {min_value:,}")
+            log.data_quality(state, f"positive ({actual_value:,}){sd} decelerated beyond linear trend, expected > {min_value:,}")
         else:
             log.data_quality(state, f"positive ({actual_value:,}){sd} accelerated beyond exponential trend, expected < {max_value:,}")
 

@@ -8,47 +8,13 @@
 #     4. browse http://127.0.0.1:5000/
 
 
-import os
-from flask import Flask, request, jsonify, Response
-import json
+from flask import Flask, Response
 from loguru import logger
 
-from run_check_service import get_proxy
-
-service = get_proxy()
+from flaskcheck import checks
 
 app = Flask(__name__)
-
-
-@app.route("/checks/working.json", methods=["GET"])
-def working_json():
-    try:
-        result = service.working_json
-        return Response(result, mimetype="text/json", status=200)
-    except Exception as ex:
-        logger.error(f"Exception: {ex}")
-        return str(ex), 500
-
-
-@app.route("/checks/working.html", methods=["GET"])
-def working_html():
-    try:
-        result = service.working_html
-        return Response(result, mimetype="text/html", status=200)
-    except Exception as ex:
-        logger.error(f"Exception: {ex}")
-        return str(ex), 500
-
-
-@app.route("/checks/working.csv", methods=["GET"])
-def working_csv():
-    try:
-        result = service.working_csv
-        return Response(result, mimetype="text/csv", status=200)
-    except Exception as ex:
-        logger.error(f"Exception: {ex}")
-        return str(ex), 500
-
+app.register_blueprint(checks)
     
 @app.route("/", methods=["GET"])
 def index():
