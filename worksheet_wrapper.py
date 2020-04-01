@@ -16,7 +16,7 @@ KEY_PATH = "credentials-scanner.json"
 
 class WorksheetWrapper():
 
-    def __init__(self, trace= True):
+    def __init__(self, debug = True):
         logger.info("load credentials")
 
         # pylint: disable=no-member
@@ -24,8 +24,8 @@ class WorksheetWrapper():
             KEY_PATH,
             scopes=SCOPES)
 
-        self.trace = trace
-        if self.trace:
+        self.debug = debug
+        if self.debug:
             logger.info(f"  email {self.creds.service_account_email}")
             logger.info(f"  project {self.creds.project_id}")
             logger.info(f"  scope {self.creds._scopes[0]}")
@@ -35,7 +35,7 @@ class WorksheetWrapper():
             logger.warning(" **** DO NOT ALLOW WRITE ACCESS ANYTHING")
             logger.info("")
 
-        if self.trace: logger.info("connect")
+        if self.debug: logger.info("connect")
         service = build('sheets', 'v4', credentials=self.creds)
         self.sheets = service.spreadsheets()
 
@@ -66,9 +66,9 @@ class WorksheetWrapper():
     def read_values(self, sheet_id: str, cell_range: str) -> List[List]:
         """Read results as a list of lists"""
 
-        if self.trace: logger.info(f"read {cell_range}")
+        if self.debug: logger.info(f"read {cell_range}")
         result = self.sheets.values().get(spreadsheetId=sheet_id, range=cell_range).execute()
-        #if self.trace: logger.info(f"  {result}")
+        #if self.debug: logger.info(f"  {result}")
 
         values = result.get('values', [])
         return values

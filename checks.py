@@ -271,12 +271,14 @@ def days_since_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, int]:
 
 #TODO: add date to dev worksheet so we don't have to pass it around
 
-def increasing_values(row, df: pd.DataFrame, log: ResultLog):
+def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = None):
     """Check that new values more than previous values
 
     df contains the historical values (newest first).  offset controls how many days to look back.
     consolidate lines if everything changed
     """
+
+    if not config: config = QCConfig()
 
     df = df[df.date < row.targetDate]
 
@@ -286,12 +288,12 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog):
 
     dict_row = row._asdict()
 
-    trace = False
+    debug = config.enable_debug
 
     is_same_messages = []
     consolidate, n_days, n_days_prev = True, -1, 0
     for c in ["positive", "negative", "death"]:
-        if trace: logger.debug(f"check {row.state} {c}")
+        if debug: logger.debug(f"check {row.state} {c}")
         val = dict_row[c]
         vec = df[c].values
         prev_val = vec[0] if vec.size > 0 else 0
@@ -322,17 +324,17 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog):
                     sd = str(d)
                     sd = sd[4:6] + "/" + sd[6:8]
                     is_same_messages.append(f"{c} ({val:,}) hasn't changed since {sd} ({n_days} days)")
-                    if trace: logger.debug(f"{c} ({val:,}) hasn't changed since {sd} ({n_days} days)")
+                    if debug: logger.debug(f"{c} ({val:,}) hasn't changed since {sd} ({n_days} days)")
 
                 if n_days_prev == 0:
                     n_days_prev = n_days
                 elif n_days_prev != n_days:
-                    if trace: logger.debug(f"{c} ({val:,}) changed {n_days} days ago -> force individual lines ")
+                    if debug: logger.debug(f"{c} ({val:,}) changed {n_days} days ago -> force individual lines ")
                     consolidate = False
             else:
                 d_last_change = max(d_last_change, df["date"].values[-1])
                 log.data_source(row.state, f"{c} ({val:,}) constant for all time")
-                if trace: logger.debug(f"{c} ({val:,}) constant -> force individual lines ")
+                if debug: logger.debug(f"{c} ({val:,}) constant -> force individual lines ")
                 consolidate = False
             continue
 
@@ -389,7 +391,7 @@ def monotonically_increasing(df: pd.DataFrame, log: ResultLog):
 
 FIT_THRESHOLDS = [0.9, 1.2]
 
-def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
+def expected_positive_increase( row, history: pd.DataFrame,
                                 log: ResultLog, context: str, config: QCConfig=None):
     """
     Fit state-level daily positives data to an exponential and a linear curve.
@@ -405,6 +407,8 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
 
     if not config: config = QCConfig()
 
+    current = row # this is an iterrows() record, not a data frame
+
     forecast = Forecast()
     forecast.date = current.targetDate
 
@@ -419,6 +423,34 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
         plot_to_file(forecast, f"{config.images_dir}/{context}", FIT_THRESHOLDS)
 
     actual_value, expected_linear, expected_exp = forecast.results
+
+    # --- sanity checks ----
+    debug = config.enable_debug
+    if debug: logger.debug(f"{forecast.state}: actual = {actual_value:,}, linear={expected_linear:,}, exp={expected_exp:,}")
+
+    is_bad = False 
+    if 100 < expected_linear > 100_000:
+        logger.error(f"{forecast.state}: actual = {actual_value:,}, linear model = {expected_linear:,} ")
+        log.internal_error(forecast.state, f"actual = {actual_value:,}, linear model = {expected_linear:,} ")
+        is_bad = True 
+    if 100 < expected_linear > 100_000:
+        logger.error(f"{forecast.state}: actual = {actual_value:,}, exponental model = {expected_exp:,} ")
+        log.internal_error(forecast.state, f"actual = {actual_value:,}, exponental model = {expected_exp:,} ")
+        is_bad = True 
+    if (not is_bad) and (expected_linear >= expected_exp):
+        logger.error(f"{forecast.state}: actual = {actual_value:,}, linear model ({expected_linear:,}) > exponental model ({expected_exp:,})")
+        log.internal_error(forecast.state, f"actual = {actual_value:,}, linear model ({expected_linear:,}) > exponental model ({expected_exp:,})")
+        is_bad = True 
+
+    if is_bad: 
+        logger.error(f"{forecast.state}: fit\n{history[['date', 'positive','total']]}")
+        logger.error(f"{forecast.state}: project {current.targetDate} positive={current.positive:,}, total={current.total:,}")
+    elif debug:
+        logger.debug(f"{forecast.state}: fit\n{history[['date', 'positive','total']]}")
+        logger.debug(f"{forecast.state}: project {current.targetDate} positive={current.positive:,}, total={current.total:,}")
+
+    if is_bad: return
+    # -----
 
     min_value = int(FIT_THRESHOLDS[0] * expected_linear)
     max_value = int(FIT_THRESHOLDS[1] * expected_exp)

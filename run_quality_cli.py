@@ -34,6 +34,7 @@ def load_args_parser(config) -> ArgumentParser:
 
     save_results = config["CHECKS"]["save_results"] == "True"
     enable_experimental = config["CHECKS"]["enable_experimental"] == "True"
+    enable_debug = config["CHECKS"]["enable_debug"] == "True"
     plot_models = config["MODEL"]["plot_models"] == "True"
 
     parser.add_argument(
@@ -43,6 +44,10 @@ def load_args_parser(config) -> ArgumentParser:
     parser.add_argument(
         '-exp', '--experimental', dest='enable_experimental', action='store_true', default=enable_experimental,
         help='enable experimental checks')
+
+    parser.add_argument(
+        '--debug', dest='enable_debug', action='store_true', default=enable_debug,
+        help='enable debug traces')
 
     parser.add_argument(
         '--plot', dest='plot_models', action='store_true', default=plot_models,
@@ -78,6 +83,7 @@ def main() -> None:
         results_dir=args.results_dir, 
         save_results=args.save_results,
         enable_experimental=args.enable_experimental,
+        enable_debug=args.enable_debug,
         images_dir=args.images_dir, 
         plot_models=args.plot_models,
     )
