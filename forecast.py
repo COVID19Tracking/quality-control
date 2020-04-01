@@ -2,6 +2,7 @@
 # Forecast -- a simple model of how many cases are excepted given recent data
 #
 import os
+from datetime import datetime
 import pandas as pd
 import numpy as np
 from scipy.optimize import curve_fit
@@ -33,7 +34,7 @@ class Forecast():
         self.df: pd.DataFrame = None
 
         self.state = ""
-        self.date = ""
+        self.date = 0
         self.actual_value = 0
         self.expected_exp = 0
         self.expected_linear = 0
@@ -71,15 +72,13 @@ class Forecast():
 
     def project(self, row: tuple) -> None:
         "Get forecasted positives value for current day"
-        self.date = row.lastUpdateEt.to_pydatetime().strftime('%Y-%m-%d')
         self.actual_value = row.positive
 
-        self.projection_index = self.cases_df["index"].max() + \
-            (int(self.date.replace("-","")) - self.cases_df["date"].max())
+        prev_datetime = datetime.strptime(str(self.cases_df["date"].max()), '%Y%m%d')
+        projection_datetime = datetime.strptime(str(self.date), '%Y%m%d')
+        days_forward = (projection_datetime - prev_datetime).days
+
+        self.projection_index = self.cases_df["index"].max() + days_forward
         self.expected_exp = _exp_fit(self.projection_index, *self.fitted_exp_params).round().astype(int)
         self.expected_linear = _linear_fit(self.projection_index, *self.fitted_linear_params).round().astype(int)
 
-    # move to seperate file
-    #def plot(self, image_dir: str, fit_thresholds: list):
-    #    "Plot case growth (expected and actuals)"
-    #    pass

@@ -60,10 +60,6 @@ def plot_to_file(forecast: Forecast, image_dir: str, fit_thresholds: list):
     projection_datetime = datetime.strptime(str(forecast.date), '%Y%m%d')
     delta = projection_datetime - first_datetime
 
-    if forecast.state == "AL":
-        import pdb
-        pdb.set_trace()
-
     plotted_dates = [(first_datetime + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(delta.days + 1)]
 
     plt.title(f"{forecast.state} ({forecast.date}): {forecast.actual_value} positives, expected between {forecast.expected_linear} and {forecast.expected_exp}")

@@ -74,7 +74,7 @@ class DataSource:
     def current(self) -> pd.DataFrame:
         " today's dataset"
         if self._current is None:
-            if self.failed["current"]: return None
+            if self.failed.get("current"): return None
             try:
                 self._current = self.load_current()
             except Exception as ex:
