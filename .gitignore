@@ -1,8 +1,30 @@
-__pycache__
-.DS_Store
+# project directorites and files
 images
 quality-control.local.ini
 ~*.xlsx
-.env
-.vscode
 results/*.hd5
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.vscode
+
+# Environments
+.env
+.envrc*
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# macOS .gitignore https://raw.githubusercontent.com/github/gitignore/master/Global/macOS.gitignore
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.Python-version

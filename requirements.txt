@@ -1,19 +1,19 @@
-loguru
-pandas
-numpy
-argparse
+loguru~=0.4.1
+pandas~=1.0.3
+numpy~=1.18.2
+argparse~=1.4.0
 
 # for google sheets
-google-api-python-client
-google-auth-httplib2 
-google-auth-oauthlib
+google-api-python-client~=1.8.0
+google-auth-httplib2~=0.0.3
+google-auth-oauthlib~=0.4.1
 
 # for forecast
-scipy
-matplotlib
-h5py
-tables
+scipy~=1.4.1
+matplotlib~=3.2.1
+h5py~=2.10.0
+tables~=3.6.1
 
 # for flask
-flask
-Pyro4
+flask~=1.1.1
+Pyro4~=4.79
