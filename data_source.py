@@ -126,14 +126,14 @@ class DataSource:
 
         if self._county_rollup is None:
             if len(self.failed) > 0: return None
-        
+
             frames = [self.cds_counties, self.csbs_counties, self.nyt_counties]
             if self.log.has_error:
-                self.failed["counties"] = True 
+                self.failed["counties"] = True
                 logger.warning("Could not load datasets for " + ",".join(self.failed))
                 return None
 
-            try:                            
+            try:
                 long_df = pd.concat(frames, axis=0, sort=False)
 
                 self._county_rollup = long_df \
@@ -149,7 +149,7 @@ class DataSource:
 
     def safe_convert_to_int(self, df: pd.DataFrame, col_name: str) -> pd.Series:
         " convert a series to int even if it contains bad data"
-        s = df[col_name].str.strip().replace("", "0").replace(re.compile(","), "")            
+        s = df[col_name].str.strip().replace("", "0").replace(re.compile(","), "")
 
         flags = s.str.isnumeric()
         df_errs = df[~flags]
@@ -158,10 +158,10 @@ class DataSource:
         df_errs = df_errs[["state", col_name]]
         logger.error(f"invalid input values for {col_name}:\n{df_errs}")
         for _, e_row in df_errs.iterrows():
-            print(e_row) 
+            print(e_row)
             v = e_row[col_name]
             self.log.error(f"Invalid {col_name} value ({v}) for {e_row.state}")
-        
+
         s = s.where(flags, other="-1000")
         return s.astype(np.int)
 
@@ -240,7 +240,7 @@ class DataSource:
 
         if has_error:
             raise Exception("Columns in google have changed")
-            
+
         for n in to_delete:
             del df[n]
 
@@ -249,7 +249,7 @@ class DataSource:
         idx = df.columns.get_loc("lastUpdateEt")
 
         for c in df.columns[1:idx]:
-            df[c] = self.safe_convert_to_int(df, c)            
+            df[c] = self.safe_convert_to_int(df, c)
 
         def convert_date(s: pd.Series) -> pd.Series:
             s = s.replace('', "01/01 00:00") # whole string match

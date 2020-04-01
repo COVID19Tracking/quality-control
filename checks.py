@@ -299,7 +299,7 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
 
         if val < prev_val:
             log.data_quality(row.state, f"{c} ({val:,}) decreased, prior value is {prev_val:,}")
-            n_days_prev = -1 # force individual lines            
+            n_days_prev = -1 # force individual lines
             continue
 
         # allow value to be the same if below a threshold
@@ -311,7 +311,7 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
 
         if val == -1000:
             log.operational(row.state, f"{c} value cannot be converted to a number")
-            n_days_prev = -1 # force individual lines            
+            n_days_prev = -1 # force individual lines
             continue
 
         if val == prev_val:
@@ -325,10 +325,10 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
                 if n_days_prev == 0:
                     n_days_prev = n_days
                 elif n_days_prev != n_days:
-                    n_days_prev = -1 # force individual lines            
+                    n_days_prev = -1 # force individual lines
             else:
                 log.data_source(row.state, f"{c} ({val:,}) constant for all time")
-                n_days_prev = -1 # force individual lines            
+                n_days_prev = -1 # force individual lines
             continue
 
         # this change is handled by model now. leave it in case we want to switch back - Josh
@@ -337,7 +337,7 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
             p_min, p_max = EXPECTED_PERCENT_THRESHOLDS[c]
             if p_observed < p_min or p_observed > p_max:
                 log.warning(row.state, f"{c} value ({val:,}) is a {p_observed:.0f}% increase, expected: {p_min:.0f} to {p_max:.0f}%")
-                n_days_prev = -1 # force individual lines            
+                n_days_prev = -1 # force individual lines
 
     # only show one message if all valules are same
     if n_days == n_days_prev:
@@ -403,10 +403,11 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
 
     if not config: config = QCConfig()
 
-    forecast_date = current.lastUpdateEt.to_pydatetime().strftime('%Y%m%d')
-    history = history.loc[history["date"].astype(str) != forecast_date]
-
     forecast = Forecast()
+    forecast.date = current.targetDate
+
+    history = history.loc[history["date"] != forecast.date]
+
     forecast.fit(history)
     forecast.project(current)
 
@@ -415,8 +416,6 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
     elif config.plot_models:
         plot_to_file(forecast, f"{config.images_dir}/{context}", FIT_THRESHOLDS)
 
-    state = forecast.state
-    date = forecast.date
     actual_value, expected_linear, expected_exp = forecast.results
 
     min_value = int(FIT_THRESHOLDS[0] * expected_linear)
@@ -425,16 +424,15 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
     # limit to N>=100
     if actual_value < 100: return
 
-
     if not (min_value <= actual_value <=  max_value):
 
-        _, m, d = date.split("-")
+        m, d = str(forecast.date)[4:6],str(forecast.date)[6:]
         sd = f"for {m}/{d}" if config.show_dates else ""
 
         #log.data_quality(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
         if actual_value < expected_linear:
-            log.data_quality(state, f"positive ({actual_value:,}){sd} decelerated beyond linear trend, expected > {min_value:,}")
+            log.data_quality(forecast.state, f"positive ({actual_value:,}){sd} decelerated beyond linear trend, expected > {min_value:,}")
         else:
-            log.data_quality(state, f"positive ({actual_value:,}){sd} accelerated beyond exponential trend, expected < {max_value:,}")
+            log.data_quality(forecast.state, f"positive ({actual_value:,}){sd} accelerated beyond exponential trend, expected < {max_value:,}")
 
 
