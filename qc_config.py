@@ -4,6 +4,7 @@ class QCConfig():
 
     def __init__(self, 
         enable_experimental = False,
+        enable_debug = False,
         results_dir = "results",
         images_dir = "images", 
         save_results = False,
@@ -14,6 +15,7 @@ class QCConfig():
         self.results_dir = results_dir # place to store hdf5 files
         self.save_results = save_results # save results to an hdf5 file
         self.enable_experimental = enable_experimental # rerun stuff still in development
+        self.enable_debug = enable_debug # turn on tracing
 
         # forecast
         self.images_dir = images_dir # place to store images

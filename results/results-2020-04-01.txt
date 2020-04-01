@@ -1,0 +1,95 @@
+
+=====| DATA QUALITY |===========
+AL: positive (1,077) decelerated beyond linear trend, expected > 6,595
+AR: positive (584) decelerated beyond linear trend, expected > 3,010
+AZ: death (29) does not match county aggregate (41)
+CA: too many pending 192% (pending=57,400, total=29,927)
+CT: positive (3,557) does not match county aggregate (3,986)
+DE: positive (368) decreased, prior value is 406
+DE: positive (368) decelerated beyond linear trend, expected > 4,163
+DE: positive (368) does not match county aggregate (417)
+GA: positive (4,638) does not match county aggregate (5,150)
+IA: positive (549) decelerated beyond linear trend, expected > 4,758
+ID: positive (525) accelerated beyond exponential trend, expected < 505
+IL: positive (6,980) does not match county aggregate (7,914)
+IL: death (141) does not match county aggregate (175)
+KS: positive (482) decelerated beyond linear trend, expected > 3,849
+MA: positive (7,738) does not match county aggregate (8,850)
+MA: death (122) does not match county aggregate (155)
+MD: death (31) does not match county aggregate (43)
+ME: positive (344) decelerated beyond linear trend, expected > 2,151
+ME: positive (344) does not match county aggregate (385)
+MI: Too many positive 44% (positive=9,334, total=21,227)
+MN: positive (689) decelerated beyond linear trend, expected > 4,582
+MO: positive (1,581) does not match county aggregate (1,755)
+MT: positive (208) decelerated beyond linear trend, expected > 1,314
+NC: positive (1,584) decelerated beyond linear trend, expected > 13,662
+ND: positive (142) decelerated beyond linear trend, expected > 994
+NE: positive (210) decelerated beyond linear trend, expected > 1,822
+NH: positive (415) decelerated beyond linear trend, expected > 3,326
+NH: positive (415) does not match county aggregate (463)
+NJ: Too many positive 42% (positive=22,255, total=52,642)
+NJ: positive (22,255) does not match county aggregate (25,814)
+NV: positive (1,279) does not match county aggregate (1,445)
+NY: death (1,941) does not match county aggregate (2,506)
+OK: positive (719) decelerated beyond linear trend, expected > 4,380
+PR: too many pending 53% (pending=897, total=1,695)
+SC: positive (1,293) decelerated beyond linear trend, expected > 12,221
+SC: positive (1,293) does not match county aggregate (1,503)
+SD: positive (129) decelerated beyond linear trend, expected > 925
+TN: positive (2,683) decelerated beyond linear trend, expected > 20,200
+TN: positive (2,683) does not match county aggregate (3,127)
+TN: death (24) does not match county aggregate (35)
+UT: positive (1,012) decelerated beyond linear trend, expected > 6,740
+UT: positive (1,012) does not match county aggregate (1,124)
+VA: positive (1,484) decelerated beyond linear trend, expected > 11,578
+VA: death (34) does not match county aggregate (53)
+VT: positive (321) decelerated beyond linear trend, expected > 1,942
+WA: positive (5,634) decelerated beyond linear trend, expected > 30,426
+WI: positive (1,550) decelerated beyond linear trend, expected > 8,741
+WV: positive (191) does not match county aggregate (220)
+=====| DATA SOURCE |===========
+AS: source hasn't updated in 1.8 days
+CA: source hasn't updated in 1.7 days
+CA: positive/negative/deaths haven't changed since 03/30 (2 days)
+DC: positive/negative/deaths haven't changed since 03/30 (2 days)
+ME: positive/negative/deaths haven't changed since 03/30 (2 days)
+MI: positive/negative/deaths haven't changed since 03/28 (4 days)
+OH: positive/negative/deaths haven't changed since 03/30 (2 days)
+OR: positive/negative/deaths haven't changed since 03/30 (2 days)
+WA: positive/negative/deaths haven't changed since 03/29 (3 days)
+=====| OPERATIONS |===========
+AK: last check ET (column AK) is blank
+CA: missing double-checker initials (column AL)
+CA: local time (column V) set to 3/31 00:00 but values haven't changed since 03/30 (2 days)
+DC: local time (column V) set to 3/31 21:24 but values haven't changed since 03/30 (2 days)
+ME: local time (column V) set to 4/1 11:00 but values haven't changed since 03/30 (2 days)
+MI: local time (column V) set to 4/1 16:00 but values haven't changed since 03/28 (4 days)
+OH: local time (column V) set to 4/1 14:00 but values haven't changed since 03/30 (2 days)
+OR: local time (column V) set to 3/31 11:00 but values haven't changed since 03/30 (2 days)
+WA: Last Check ET (column AJ) is 04/01 16:13 which is less than Last Update ET (column AI)  04/01 19:10 by 3 hours
+WA: local time (column V) set to 4/1 19:10 but values haven't changed since 03/29 (3 days)
+=====| INTERNAL ERROR |===========
+AS: actual = 0, linear model (0) > exponental model (0)
+AZ: actual = 1,413, linear model (11,684) > exponental model (-2,147,483,648)
+CT: actual = 3,557, linear model (45,782) > exponental model (-2,147,483,648)
+FL: actual = 6,955, linear model (68,962) > exponental model (-2,147,483,648)
+GA: actual = 4,638, linear model (37,595) > exponental model (-2,147,483,648)
+IL: actual = 6,980, linear model (61,770) > exponental model (-2,147,483,648)
+IN: actual = 2,565, linear model (23,502) > exponental model (-2,147,483,648)
+LA: actual = 6,424, linear model (48,724) > exponental model (-2,147,483,648)
+MD: actual = 1,985, linear model (16,899) > exponental model (-2,147,483,648)
+MI: actual = 9,334, linear model (97,949) > exponental model (-2,147,483,648)
+MO: actual = 1,581, linear model (12,877) > exponental model (-2,147,483,648)
+MP: actual = 6, linear model (2) > exponental model (2)
+NJ: actual = 22,255, linear model = 200,617 
+NJ: actual = 22,255, exponental model = -2,147,483,648 
+NV: actual = 1,279, linear model (13,354) > exponental model (-2,147,483,648)
+NY: actual = 83,712, linear model = 617,048 
+NY: actual = 83,712, exponental model = -2,147,483,648 
+OH: actual = 2,547, linear model (20,810) > exponental model (-2,147,483,648)
+PA: actual = 5,805, linear model (53,597) > exponental model (-2,147,483,648)
+PR: actual = 286, linear model (3,478) > exponental model (-2,147,483,648)
+RI: actual = 566, linear model (7,277) > exponental model (-2,147,483,648)
+WV: actual = 191, linear model (1,633) > exponental model (-2,147,483,648)
+
