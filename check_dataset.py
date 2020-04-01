@@ -68,7 +68,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
                 df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
                 if  not df_county_rollup.empty:
                     checks.counties_rollup_to_state(row, df_county_rollup, log)
-        
+
         except Exception as ex:
             logger.exception(ex)
             log.internal_error(row.state, f"{ex}")
@@ -110,7 +110,7 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     df = ds.current
     if df is None: return None
 
-    publish_date = 20200331
+    publish_date = 20200401
     logger.error(f" [date is hard-coded to {publish_date}]")
 
     # setup run settings equivalent to publish date at 5PM
