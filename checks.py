@@ -66,12 +66,22 @@ def current_time_and_phase() -> Tuple[datetime, str]:
 def total(row, log: ResultLog):
     """Check that pendings, positive, and negative sum to the reported total"""
 
-    n_pos, n_neg, n_pending, n_tot = \
-        row.positive, row.negative, row.pending, row.total
+    n_pos, n_neg, n_pending, n_death, n_tot = \
+        row.positive, row.negative, row.pending, row.death, row.total
 
     n_diff = n_tot - (n_pos + n_neg + n_pending)
-    if n_diff != 0:
-        log.operational(row.state, f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
+    if n_pos == -1000:
+        log.operational(row.state, f"Data Entry Error on positive")
+    elif n_neg == -1000:
+        log.operational(row.state, f"Data Entry Error on negative")
+    elif n_pending == -1000:
+        log.operational(row.state, f"Data Entry Error on pending")
+    elif n_death == -1000:
+        log.operational(row.state, f"Data Entry Error on death")
+    elif n_tot == -1000:
+        log.operational(row.state, f"Data Entry Error on total")
+    elif n_diff != 0:
+        log.operational(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
 
 def total_tests(row, log: ResultLog):
     """Check that positive, and negative sum to the reported totalTest"""
@@ -275,11 +285,13 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
 
     df = df[df.date < row.targetDate]
 
-    #print(df)
-    #exit(-1)
+    last_updated = row.lastUpdateEt
+    d = last_updated.year * 10000 + last_updated.month * 100 + last_updated.day
 
     dict_row = row._asdict()
 
+    is_same_messages = []
+    n_days, n_days_prev = -1, 0
     for c in ["positive", "negative", "death", "total"]:
         val = dict_row[c]
         vec = df[c].values
@@ -287,6 +299,8 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
 
         if val < prev_val:
             log.data_quality(row.state, f"{c} ({val:,}) decreased, prior value is {prev_val:,}")
+            n_days_prev = -1 # force individual lines            
+            continue
 
         # allow value to be the same if below a threshold
         if val < IGNORE_THRESHOLDS[c]: continue
@@ -295,27 +309,48 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
         checked_at = row.lastCheckEt.to_pydatetime()
         is_check_field_set = checked_at > START_OF_TIME
 
+        if val == -1000:
+            log.operational(row.state, f"{c} value cannot be converted to a number")
+            n_days_prev = -1 # force individual lines            
+            continue
+
         if val == prev_val:
             n_days, d = days_since_change(val, df[c], df["date"])
             if n_days >= 0:
-                d = str(d)
-                d = d[4:6] + "/" + d[6:8]
+                sd = str(d)
+                sd = sd[4:6] + "/" + sd[6:8]
 
                 if prev_val >= 20 and (is_check_field_set or phase in ["publish", "update"]):
-                    log.data_source(row.state, f"{c} ({val:,}) has not changed since {d} ({n_days} days)")
-                else:
-                    log.data_source(row.state, f"{c} ({val:,}) has not changed since {d} ({n_days} days)")
+                    is_same_messages.append(f"{c} ({val:,}) hasn't changed since {sd} ({n_days} days)")
+                if n_days_prev == 0:
+                    n_days_prev = n_days
+                elif n_days_prev != n_days:
+                    n_days_prev = -1 # force individual lines            
             else:
                 log.data_source(row.state, f"{c} ({val:,}) constant for all time")
+                n_days_prev = -1 # force individual lines            
             continue
-
-        p_observed = 100.0 * val / prev_val - 100.0
 
         # this change is handled by model now. leave it in case we want to switch back - Josh
         if check_rate:
+            p_observed = 100.0 * val / prev_val - 100.0
             p_min, p_max = EXPECTED_PERCENT_THRESHOLDS[c]
             if p_observed < p_min or p_observed > p_max:
                 log.warning(row.state, f"{c} value ({val:,}) is a {p_observed:.0f}% increase, expected: {p_min:.0f} to {p_max:.0f}%")
+                n_days_prev = -1 # force individual lines            
+
+    # only show one message if all valules are same
+    if n_days == n_days_prev:
+        d_updated = last_updated.year * 10000 + last_updated.month * 100 + last_updated.day
+        sd_updated = f"{last_updated.month}/{last_updated.day} {last_updated.hour:02}:{last_updated.minute:02}"
+        sd = str(d)
+        sd = sd[4:6] + "/" + sd[6:8]
+        if d != d_updated:
+            is_same_messages = [f"Source marked as update at {sd_updated} but values haven't changed since {sd} ({n_days} days)"]
+        else:
+            is_same_messages = [f"Source values haven't changed since {sd} ({n_days} days)"]
+    for m in is_same_messages: log.data_source(row.state, m)
+
 
 
 # ----------------------------------------------------------------
@@ -387,9 +422,13 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
     min_value = int(FIT_THRESHOLDS[0] * expected_linear)
     max_value = int(FIT_THRESHOLDS[1] * expected_exp)
 
+    # limit to N>=100
+    if actual_value < 100: return
+
+
     if not (min_value <= actual_value <=  max_value):
 
-        y, m, d = date.split("-")
+        _, m, d = date.split("-")
         sd = f"for {m}/{d}" if config.show_dates else ""
 
         #log.data_quality(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
