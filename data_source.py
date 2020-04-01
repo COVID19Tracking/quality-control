@@ -33,6 +33,8 @@ class DataSource:
         self._target_date = None
         self.log = ErrorLog()
 
+        self.failed = {}
+
         # internal datasources
         self._working: pd.DataFrame = None
         self._history: pd.DataFrame = None
@@ -48,60 +50,72 @@ class DataSource:
     def working(self) -> pd.DataFrame:
         " the working dataset"
         if self._working is None:
+            if self.failed.get("working"): return None
             try:
                 self._working = self.load_working()
             except Exception as ex:
-                self.log.error(f"Could not load working: {ex}")
+                self.failed["working"] = True
+                self.log.error(f"Could not load working", exception=ex)
         return self._working
 
     @property
     def history(self) -> pd.DataFrame:
         " the daily history dataset"
         if self._history is None:
+            if self.failed.get("history"): return None
             try:
                 self._history = self.load_history()
             except Exception as ex:
-                self.log.error(f"Could not load history: {ex}")
+                self.failed["history"] = True
+                self.log.error(f"Could not load history", exception=ex)
         return self._history
 
     @property
     def current(self) -> pd.DataFrame:
         " today's dataset"
         if self._current is None:
+            if self.failed["current"]: return None
             try:
                 self._current = self.load_current()
             except Exception as ex:
-                self.log.error(f"Could not load current: {ex}")
+                self.failed["current"] = True
+                self.log.error("Could not load current", exception=ex)
         return self._current
 
     @property
     def cds_counties(self) -> pd.DataFrame:
         " the CDS counties dataset"
         if self._cds_counties is None:
+            if self.failed.get("CDS"): return None
             try:
                 self._cds_counties = self.load_cds_counties()
             except Exception as ex:
-                self.log.warning(f"Could not load CDS counties: {ex}")
+                self.failed["CDS"] = True
+                self.log.warning("Could not load CDS counties", exception=ex)
         return self._cds_counties
 
     @property
     def csbs_counties(self) -> pd.DataFrame:
         " the CSBS counties dataset"
         if self._csbs_counties is None:
+            if self.failed.get("CSBS"): return None
             try:
                 self._csbs_counties = self.load_csbs_counties()
             except Exception as ex:
-                self.log.warning(f"Could not load CSBS counties: {ex}")
+                self.failed["CSBS"] = True
+                self.log.warning(f"Could not load CSBS counties", exception=ex)
         return self._csbs_counties
 
     @property
     def nyt_counties(self) -> pd.DataFrame:
         " the NYT counties dataset"
         if self._nyt_counties is None:
+            if self.failed.get("NYT"): return None
             try:
                 self._nyt_counties = self.load_nyt_counties()
             except Exception as ex:
-                self.log.warning(f"Could not load NYT counties: {ex}")
+                self.failed["NYT"] = True
+                self.log.warning(f"Could not load NYT counties", exception=ex)
         return self._nyt_counties
 
     @property
@@ -111,9 +125,12 @@ class DataSource:
         metrics = ["cases", "deaths","recovered"]
 
         if self._county_rollup is None:
+            if len(self.failed) > 0: return None
+        
             frames = [self.cds_counties, self.csbs_counties, self.nyt_counties]
-            if self.log.has_error: 
-                logger.warning("Could not load one or more county datasets")
+            if self.log.has_error:
+                self.failed["counties"] = True 
+                logger.warning("Could not load datasets for " + ",".join(self.failed))
                 return None
 
             try:                            
@@ -129,6 +146,25 @@ class DataSource:
                 self.log.warning(f"Could not combine counties datasets: {ex}")
 
         return self._county_rollup
+
+    def safe_convert_to_int(self, df: pd.DataFrame, col_name: str) -> pd.Series:
+        " convert a series to int even if it contains bad data"
+        s = df[col_name].str.strip().replace("", "0").replace(re.compile(","), "")            
+
+        flags = s.str.isnumeric()
+        df_errs = df[~flags]
+        if df_errs.shape[0] == 0: return s.astype(np.int)
+
+        df_errs = df_errs[["state", col_name]]
+        logger.error(f"invalid input values for {col_name}:\n{df_errs}")
+        for _, e_row in df_errs.iterrows():
+            print(e_row) 
+            v = e_row[col_name]
+            self.log.error(f"Invalid {col_name} value ({v}) for {e_row.state}")
+        
+        s = s.where(flags, other="-1000")
+        return s.astype(np.int)
+
 
 
     def load_working(self) -> pd.DataFrame:
@@ -176,8 +212,7 @@ class DataSource:
         idx = df.columns.get_loc("lastUpdateEt")
 
         for c in df.columns[1:idx]:
-            df[c] = df[c].str.strip().replace("", "0").replace(re.compile(","), "")
-            df[c] = df[c].astype(np.int)
+            df[c] = self.safe_convert_to_int(df, c)            
 
         def convert_date(s: pd.Series) -> pd.Series:
             s = s.replace('', "01/01 00:00") # whole string match
