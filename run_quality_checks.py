@@ -67,7 +67,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
 
         except Exception as ex:
             logger.exception(ex)
-            log.error(row.state, f"{ex}")
+            log.internal_error(row.state, f"{ex}")
 
     # run loop at end, insted of during run
     if config.plot_models and config.save_results:
@@ -80,7 +80,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
                     plot_to_file(forecast, f"{config.images_dir}/working", checks.FIT_THRESHOLDS)
             except Exception as ex:
                 logger.exception(ex)
-                log.error(row.state, f"{ex}")
+                log.internal_error(row.state, f"{ex}")
 
 
     return log

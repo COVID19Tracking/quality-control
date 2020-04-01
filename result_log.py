@@ -13,9 +13,10 @@ import time
 import html
 
 class ResultCategory(Enum):
-    ERROR = "error"
-    WARNING = "warning"
-    INFO = "info"
+    DATA_QUALITY = "data quality"
+    DATA_SOURCE = "data source"
+    OPERATIONAL = "operations"
+    INTERNAL_ERROR = "internal error"
 
 class ResultMessage:
 
@@ -33,7 +34,7 @@ class ResultMessage:
         self.ms = ms
 
     def to_dict(self) -> Dict:
-        return { "category": self.category.name, "location": self.location, "message": self.message, "ms": self.ms }
+        return { "category": self.category.value, "location": self.location, "message": self.message, "ms": self.ms }
 
 class ResultLog():
 
@@ -60,12 +61,21 @@ class ResultLog():
         msg = ResultMessage(category, location, message, delta_ms)
         self._messages.append(msg)
 
-    def error(self, location: str, message: str) -> None:
-        self.add(ResultCategory.ERROR, location, message)
-    def warning(self, location: str, message: str) -> None:
-        self.add(ResultCategory.WARNING, location, message)
-    def info(self, location: str, message: str) -> None:
-        self.add(ResultCategory.INFO, location, message)
+    #def error(self, location: str, message: str) -> None:
+    #    self.add(ResultCategory.ERROR, location, message)
+    #def warning(self, location: str, message: str) -> None:
+    #    self.add(ResultCategory.WARNING, location, message)
+    #def info(self, location: str, message: str) -> None:
+    #    self.add(ResultCategory.INFO, location, message)
+
+    def operational(self, location: str, message: str) -> None:
+        self.add(ResultCategory.OPERATIONAL, location, message)
+    def data_quality(self, location: str, message: str) -> None:
+        self.add(ResultCategory.DATA_QUALITY, location, message)
+    def data_source(self, location: str, message: str) -> None:
+        self.add(ResultCategory.DATA_SOURCE, location, message)
+    def internal_error(self, location: str, message: str) -> None:
+        self.add(ResultCategory.INTERNAL_ERROR, location, message)
 
     # -----
 
@@ -80,7 +90,7 @@ class ResultLog():
             messages = self.by_category(cat)
             if len(messages) == 0: continue
         
-            print(f"=====| {cat.name} |===========")
+            print(f"=====| {cat.value.upper()} |===========")
             for x in messages:
                 print(f"{x.location}: {x.message}")
 
@@ -88,18 +98,16 @@ class ResultLog():
 
 
     def to_json(self) -> str:
-        result = {
-            "error": [ x.to_dict() for x in self._messages if x.category == ResultCategory.ERROR ],
-            "warning": [ x.to_dict() for x in self._messages if x.category == ResultCategory.WARNING ],
-            "infomation": [ x.to_dict() for x in self._messages if x.category == ResultCategory.INFO ],
-        }
+        result = {}
+        for cat in ResultCategory:
+            result[cat.name] = [ x.to_dict() for x in self._messages if x.category == cat ]
         return json.dumps(result, indent=2)
 
 
     def to_frame(self) -> pd.DataFrame:
  
         n_total = len(self._messages)
-        level = np.zeros(n_total, dtype=object)
+        category = np.zeros(n_total, dtype=object)
         location = np.zeros(n_total, dtype=object)
         message = np.zeros(n_total, dtype=object)
         time_ms = np.zeros(n_total, dtype=np.int)
@@ -108,11 +116,11 @@ class ResultLog():
         for cat in ResultCategory:
             messages = self.by_category(cat)
             for x in messages:
-                level[idx], location[idx], message[idx], time_ms[idx] = cat.name, x.location, x.message, x.ms
+                category[idx], location[idx], message[idx], time_ms[idx] = cat.value.upper(), x.location, x.message, x.ms
                 idx += 1
 
         df = pd.DataFrame({
-            "level": level, "location": location, "message": message, "ms": time_ms
+            "category": category, "location": location, "message": message, "ms": time_ms
         })
         return df
 
@@ -144,8 +152,8 @@ class ResultLog():
         for cat in ResultCategory:
             messages = self.by_category(cat)
             for x in messages:
-                lines.append(f"      <tr class='{cat.name}'>")
-                lines.append(f"        <td class='category'>{x.category}</td>")
+                lines.append(f"      <tr class='{cat.value}'>")
+                lines.append(f"        <td class='category'>{cat.value.upper()}</td>")
                 lines.append(f"        <td class='location'>{x.location}</td>")
                 msg = html.escape(x.message).replace('\n', '<br>\n')
                 lines.append(f"        <td class='message'>{msg}</td>")
@@ -165,9 +173,9 @@ class ResultLog():
 def test():
 
     log = ResultLog()
-    log.error("NY", "Looking kinda scary.  > 50K")
-    log.warning("TX", "We're next, soon")
-    log.info("FA", '"Let''s Ignore It"')
+    log.data_quality("NY", "Looking kinda scary.  > 50K")
+    log.data_source("TX", "We're missing stuff, find it")
+    log.operational("FL", '"Let''s Ignore It"')
 
     print("--- print ----")
     log.print()

@@ -71,7 +71,7 @@ def total(row, log: ResultLog):
 
     n_diff = n_tot - (n_pos + n_neg + n_pending)
     if n_diff != 0:
-        log.error(row.state, f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
+        log.operational(row.state, f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
 
 def total_tests(row, log: ResultLog):
     """Check that positive, and negative sum to the reported totalTest"""
@@ -83,7 +83,7 @@ def total_tests(row, log: ResultLog):
 
     n_diff = n_tests - (n_pos + n_neg)
     if n_diff != 0:
-        log.error(row.state, f"Formula broken -> Postive ({n_pos}) + Negative ({n_neg}) != Total Tests ({n_tests}), delta = {n_diff}")
+        log.operational(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) != Total Tests ({n_tests}), delta = {n_diff}")
 
 
 def last_update(row, log: ResultLog):
@@ -95,9 +95,9 @@ def last_update(row, log: ResultLog):
     days = delta.total_seconds() / (24 * 60.0 * 60)
 
     if days >= 1.5:
-        log.error(row.state, f"source hasn't updated in {days:.1f} days")
+        log.data_source(row.state, f"source hasn't updated in {days:.1f} days")
     #elif hours > 18.0:
-    #   log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
+    #   log.data_source(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
 
 def last_checked(row, log: ResultLog):
     """Data was checked within a reasonable timeframe"""
@@ -111,28 +111,25 @@ def last_checked(row, log: ResultLog):
         if phase == "inactive":
             pass
         elif phase in ["publish", "update"]:
-            log.error(row.state, f"check needed")
+            log.operational(row.state, f"check needed")
         elif phase in ["prepare", "cleanup"]:
-            log.info(row.state, f"check needed")
+            pass
         return
 
     delta = updated_at - checked_at
     hours = delta.total_seconds() / (60.0 * 60)
-    if hours > 2.0:
+    if hours > 1.0:
         s_updated = updated_at.strftime('%m/%d %H:%M')
         s_checked = checked_at.strftime('%m/%d %H:%M')
-        log.error(row.state, f"updated since last check: {hours:.0f} hours ago at {s_updated}, checked at {s_checked}")
+        log.operational(row.state, f"Last Check (column U) less than Last Update (column T)  ({hours:.0f} hours ago at {s_updated}, checked at {s_checked})")
         return
 
-    delta = target_date - updated_at
+    delta = target_date - checked_at
     hours = delta.total_seconds() / (60.0 * 60)
-    if hours > 12.0:
+    if hours > 6.0:
         s_checked = checked_at.strftime('%m/%d %H:%M')
-        log.warning(row.state, f"source has not been checked in {hours:.0f} hours at {s_checked}")
+        log.operational(row.state, f"Last Check (column U) has changed in {hours:.0f} hours ({s_checked} by {row.checker})")
         return
-
-    #elif hours > 18.0:
-    #   log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
 
 
 def checkers_initials(row, log: ResultLog):
@@ -155,36 +152,32 @@ def checkers_initials(row, log: ResultLog):
     if checker == "":
         if 0 < delta_hours < 5:
             s_checked = checked_at.strftime('%m/%d %H:%M')
-            log.error(row.state, f"missing checker initials but checked date set recently (at {s_checked})")
+            log.operational(row.state, f"missing checker initials but checked date set recently (at {s_checked})")
         elif is_near_release:
-            log.error(row.state, f"missing checker initials")
-        else:
-            log.info(row.state, f"missing checker initials")
+            log.operational(row.state, f"missing checker initials")
         return
     if doubleChecker == "":
         if is_near_release:
-            log.error(row.state, f"missing double-checker initials")
-        else:
-            log.info(row.state, f"Missing double-checker initials")
+            log.operational(row.state, f"missing double-checker initials")
         return
 
     #elif hours > 18.0:
-    #   log.error(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
+    #   log.data_source(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
 
 
 def positives_rate(row, log: ResultLog):
     """Check that positives compose <20% test results"""
 
-    n_pos, n_neg, n_deaths = row.positive, row.negative, row.death
+    n_pos, n_neg = row.positive, row.negative
     n_tot = n_pos + n_neg
 
     percent_pos = 100.0 * n_pos / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
         if percent_pos > 40.0 and n_pos > 20:
-            log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
     else:
         if percent_pos > 80.0 and n_pos > 20:
-            log.error(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
 
 def death_rate(row, log: ResultLog):
     """Check that deaths are <5% of test results"""
@@ -195,17 +188,17 @@ def death_rate(row, log: ResultLog):
     percent_deaths = 100.0 * n_deaths / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
         if percent_deaths > 5.0:
-            log.error(row.state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
     else:
         if percent_deaths > 10.0:
-            log.error(row.state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
 
 
 def less_recovered_than_positive(row, log: ResultLog):
     """Check that we don't have more recovered than positive"""
 
     if row.recovered > row.positive:
-        log.error(row.state, f"More recovered than positive (recovered={row.recovered:,}, positive={row.positive:,})")
+        log.data_quality(row.state, f"More recovered than positive (recovered={row.recovered:,}, positive={row.positive:,})")
 
 
 def pendings_rate(row, log: ResultLog):
@@ -217,10 +210,10 @@ def pendings_rate(row, log: ResultLog):
 
     if n_tot > 1000:
         if percent_pending > 20.0:
-            log.warning(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
     else:
         if percent_pending > 80.0:
-            log.warning(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
 
 
 # ----------------------------------------------------------------
@@ -241,13 +234,13 @@ def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
         pos_error =  abs(counties["cases"] - row.positive).min() / row.positive
         if pos_error > COUNTY_ERROR_THRESHOLDS["positive"]:
             closest_pos = int(round(pos_error * row.positive + row.positive))
-            log.error(row.state, f"positive ({row.positive:,}) does not match county aggregate ({closest_pos:,})")
+            log.data_quality(row.state, f"positive ({row.positive:,}) does not match county aggregate ({closest_pos:,})")
 
     if row.death > 20:
         death_error = abs(counties["deaths"] - row.death).min() / row.death
         if death_error > COUNTY_ERROR_THRESHOLDS["death"]:
             closest_death = int(round(death_error * row.death + row.death))
-            log.error(row.state, f"death ({row.death:,}) does not match county aggregate ({closest_death:,})")
+            log.data_quality(row.state, f"death ({row.death:,}) does not match county aggregate ({closest_death:,})")
 
 
 # ----------------------------------------------------------------
@@ -293,7 +286,7 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
         prev_val = vec[0] if vec.size > 0 else 0
 
         if val < prev_val:
-            log.error(row.state, f"{c} ({val:,}) decreased, prior value is {prev_val:,}")
+            log.data_quality(row.state, f"{c} ({val:,}) decreased, prior value is {prev_val:,}")
 
         # allow value to be the same if below a threshold
         if val < IGNORE_THRESHOLDS[c]: continue
@@ -309,11 +302,11 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, check_rate: bool):
                 d = d[4:6] + "/" + d[6:8]
 
                 if prev_val >= 20 and (is_check_field_set or phase in ["publish", "update"]):
-                    log.error(row.state, f"{c} ({val:,}) has not changed since {d} ({n_days} days)")
+                    log.data_source(row.state, f"{c} ({val:,}) has not changed since {d} ({n_days} days)")
                 else:
-                    log.warning(row.state, f"{c} ({val:,}) has not changed since {d} ({n_days} days)")
+                    log.data_source(row.state, f"{c} ({val:,}) has not changed since {d} ({n_days} days)")
             else:
-                log.error(row.state, f"{c} ({val:,}) constant for all time")
+                log.data_source(row.state, f"{c} ({val:,}) constant for all time")
             continue
 
         p_observed = 100.0 * val / prev_val - 100.0
@@ -401,8 +394,8 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
 
         #log.error(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
         if actual_value < expected_linear:
-            log.error(state, f"positive ({actual_value:,}){sd} decellerated beyond linear trend, expected at least {min_value:,}")
+            log.data_quality(state, f"positive ({actual_value:,}){sd} decellerated beyond linear trend, expected > {min_value:,}")
         else:
-            log.error(state, f"positive ({actual_value:,}){sd} accelerated beyond exponential trend, expected at most {max_value:,}")
+            log.data_quality(state, f"positive ({actual_value:,}){sd} accelerated beyond exponential trend, expected < {max_value:,}")
 
 
