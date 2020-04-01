@@ -129,38 +129,53 @@ class ResultLog():
         dest = io.StringIO()
         df.to_csv(dest, index=False)
         return dest.getvalue()
-    
+
+    def format_table(self, cat: ResultCategory) -> List[str]:
+
+        lines = []
+        lines.append("<table class='result-table'>")
+        lines.append(f"  <caption>{cat.value.upper()}</caption>")
+
+        lines.append(f"  <tr>")
+        lines.append(f"    <th class='category'>Category</td>")
+        lines.append(f"    <th class='location'>Location</td>")
+        lines.append(f"    <th class='message'>Message</td>")
+        #lines.append(f"   <th class='ms'>time (ms)</td>")
+        lines.append(f"  </tr>")
+
+        xcls = cat.value.lower().replace(" ", "-")
+
+        messages = self.by_category(cat)
+        for x in messages:    
+            lines.append(f"  <tr class='{xcls}'>")
+            lines.append(f"    <td class='category'>{cat.value.upper()}</td>")
+            lines.append(f"    <td class='location'>{x.location}</td>")
+            msg = html.escape(x.message).replace('\n', '<br>\n')
+            lines.append(f"    <td class='message'>{msg}</td>")
+            #lines.append(f"   <td class='ms'>{x.ms}</td>")
+            lines.append(f"  </tr>")
+
+        lines.append("</table>")
+        return lines
+
     def to_html(self, as_fragment=False) -> str:
         lines = []
 
         if not as_fragment:
             lines.append("<html>")
             lines.append("  <head>")
-            lines.append("    <link rel='stylesheet' href='result_log.css' type='text/css' />")
+            lines.append("    <link rel='stylesheet' href='/static/result_log.css' type='text/css' />")
             lines.append("  </head>")
             lines.append("  <body>")
 
-        lines.append("    <table class='result-table'>")
-
-        lines.append(f"      <tr>")
-        lines.append(f"        <th class='category'>Category</td>")
-        lines.append(f"        <th class='location'>Location</td>")
-        lines.append(f"        <th class='message'>Message</td>")
-        #lines.append(f"        <th class='ms'>time (ms)</td>")
-        lines.append(f"      </tr>")
-
+        lines.append("    <div class='data-container'>")
         for cat in ResultCategory:
-            messages = self.by_category(cat)
-            for x in messages:
-                lines.append(f"      <tr class='{cat.value}'>")
-                lines.append(f"        <td class='category'>{cat.value.upper()}</td>")
-                lines.append(f"        <td class='location'>{x.location}</td>")
-                msg = html.escape(x.message).replace('\n', '<br>\n')
-                lines.append(f"        <td class='message'>{msg}</td>")
-                #lines.append(f"        <td class='ms'>{x.ms}</td>")
-                lines.append(f"      </tr>")
+            lines.append("    <div class='data-panel'>")
 
-        lines.append("    </table>")
+            new_lines = self.format_table(cat)
+            lines.extend([ "      " + x for x in new_lines]) 
+            lines.append("    </div>")
+        lines.append("    </div>")
 
         if not as_fragment:
             lines.append("  </body>")

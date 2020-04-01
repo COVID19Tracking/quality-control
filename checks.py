@@ -4,15 +4,15 @@
 #   Each routine checks a specific aspect of a single state
 #
 #   If any issues are found, the check routine calls the log to report it.
-#   The three log methods are info/warning/error.
+#   Each message has a category.  See ResultLog for a list of categories.
 #
 #   Each row has a 'phase' appended to it that can be used to control how
 #   errors are reported.  At certain times, fields like checked are expected
-#   to be cleared.
+#   to be cleared.  This should mainly be used with operational cheks.
 #
 # To add a new check:
 #    1. create the routine here
-#    2. add it to the calling routines in run_quality_checks
+#    2. add it to the calling routines in check_dataset
 #    3. put it behind the experimental flag (config.enable_experimental) at first
 #    4. WHEN YOU CHANGE A CHECK THAT IMPACTS WORKING, MAKE SURE TO UPDATE THE EXCEL TRACKING DOCUMENT
 #
@@ -390,7 +390,7 @@ def expected_positive_increase( current: pd.DataFrame, history: pd.DataFrame,
     if not (min_value <= actual_value <=  max_value):
 
         y, m, d = date.split("-")
-        sd = "for {m}/{d}" if config.show_dates else ""
+        sd = f"for {m}/{d}" if config.show_dates else ""
 
         #log.data_quality(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
         if actual_value < expected_linear:
