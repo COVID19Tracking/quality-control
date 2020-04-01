@@ -1,4 +1,4 @@
-"""Run Quality Checks against human generated datasets"""
+"""run quality checks against the COVID Tracker's human-generated datasets"""
 
 import sys
 from loguru import logger
@@ -92,19 +92,28 @@ def main() -> None:
     ds = DataSource()
 
     if args.check_working:
-        logger.info("--| QUALITY CONTROL --- GOOGLE WORKING SHEET |---------------------------------------------------")
+        logger.info("--| QUALITY CONTROL --- GOOGLE WORKING SHEET |------")
         log = check_working(ds, config=config)
-        log.print()
+        if log is None:
+            ds.log.print()
+        else:
+            log.print()
 
     if args.check_daily:
-        logger.info("--| QUALITY CONTROL --- CURRENT |-----------------------------------------------------------")
+        logger.info("--| QUALITY CONTROL --- CURRENT |------")
         log = check_current(ds, config=config)
-        log.print()
+        if log is None:
+            ds.log.print()
+        else:
+            log.print()
 
     if args.check_history:
-        logger.info("--| QUALITY CONTROL --- HISTORY |-----------------------------------------------------------")
+        logger.info("--| QUALITY CONTROL --- HISTORY |------")
         log = check_history(ds)
-        log.print()
+        if log is None:
+            ds.log.print()
+        else:
+            log.print()
 
 
 if __name__ == "__main__":

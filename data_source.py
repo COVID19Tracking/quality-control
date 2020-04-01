@@ -20,16 +20,18 @@ import re
 from util import state_abbrevs
 import udatetime
 from worksheet_wrapper import WorksheetWrapper
-
+from error_log import ErrorLog
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 KEY_PATH = "credentials-scanner.json"
+
 
 class DataSource:
 
     def __init__(self):
 
         self._target_date = None
+        self.log = ErrorLog()
 
         # internal datasources
         self._working: pd.DataFrame = None
@@ -42,65 +44,89 @@ class DataSource:
         self._nyt_counties: pd.DataFrame = None
         self._county_rollup: pd.DataFrame = None
 
-
     @property
     def working(self) -> pd.DataFrame:
         " the working dataset"
         if self._working is None:
-            self._working = self.load_working()
+            try:
+                self._working = self.load_working()
+            except Exception as ex:
+                self.log.error(f"Could not load working: {ex}")
         return self._working
 
     @property
     def history(self) -> pd.DataFrame:
         " the daily history dataset"
         if self._history is None:
-            self._history = self.load_history()
+            try:
+                self._history = self.load_history()
+            except Exception as ex:
+                self.log.error(f"Could not load history: {ex}")
         return self._history
 
     @property
     def current(self) -> pd.DataFrame:
         " today's dataset"
         if self._current is None:
-            self._current = self.load_current()
+            try:
+                self._current = self.load_current()
+            except Exception as ex:
+                self.log.error(f"Could not load current: {ex}")
         return self._current
 
     @property
     def cds_counties(self) -> pd.DataFrame:
         " the CDS counties dataset"
         if self._cds_counties is None:
-            self._cds_counties = self.load_cds_counties()
+            try:
+                self._cds_counties = self.load_cds_counties()
+            except Exception as ex:
+                self.log.warning(f"Could not load CDS counties: {ex}")
         return self._cds_counties
 
     @property
     def csbs_counties(self) -> pd.DataFrame:
         " the CSBS counties dataset"
         if self._csbs_counties is None:
-            self._csbs_counties = self.load_csbs_counties()
+            try:
+                self._csbs_counties = self.load_csbs_counties()
+            except Exception as ex:
+                self.log.warning(f"Could not load CSBS counties: {ex}")
         return self._csbs_counties
 
     @property
     def nyt_counties(self) -> pd.DataFrame:
         " the NYT counties dataset"
         if self._nyt_counties is None:
-            self._nyt_counties = self.load_nyt_counties()
+            try:
+                self._nyt_counties = self.load_nyt_counties()
+            except Exception as ex:
+                self.log.warning(f"Could not load NYT counties: {ex}")
         return self._nyt_counties
 
     @property
     def county_rollup(self) -> pd.DataFrame:
-        """ return a single county dataset with median of select metrics """
+        """ return a single county dataset of select metrics """
 
         metrics = ["cases", "deaths","recovered"]
 
         if self._county_rollup is None:
-            long_df = pd.concat([self.cds_counties, self.csbs_counties, self.nyt_counties],
-                                 axis=0, sort=False)
+            frames = [self.cds_counties, self.csbs_counties, self.nyt_counties]
+            if self.log.has_error: 
+                logger.warning("Could not load one or more county datasets")
+                return None
 
-            self._county_rollup = long_df \
-                .groupby(["state", "source"])[metrics] \
-                .sum() \
-                .fillna(0) \
-                .astype(int) \
-                .reset_index()
+            try:                            
+                long_df = pd.concat(frames, axis=0, sort=False)
+
+                self._county_rollup = long_df \
+                    .groupby(["state", "source"])[metrics] \
+                    .sum() \
+                    .fillna(0) \
+                    .astype(int) \
+                    .reset_index()
+            except Exception as ex:
+                self.log.warning(f"Could not combine counties datasets: {ex}")
 
         return self._county_rollup
 

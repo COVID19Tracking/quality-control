@@ -50,21 +50,36 @@ class CheckServer:
     @property 
     def working(self) -> ResultLog:
         if is_out_of_date(self._working, 60):
+            self.ds = DataSource()
             self._working = check_working(self.ds, self.config)  
         return self._working
 
     @Pyro4.expose
     @property
     def working_csv(self) -> str:
-        return self.working.to_csv()
+        w =  self.working
+        if w is None:
+            self.ds.log.to_csv()
+        else:
+            return w.to_csv()
+
     @Pyro4.expose
     @property
     def working_json(self) -> str:
-        return self.working.to_json()
+        w =  self.working
+        if w is None:
+            self.ds.log.to_json()
+        else:
+            return w.to_json()
+
     @Pyro4.expose
     @property
     def working_html(self) -> str:
-        return self.working.to_html()
+        w =  self.working
+        if w is None:
+            self.ds.log.to_html()
+        else:
+            return w.to_html()
 
 # -----------------------------------
 
