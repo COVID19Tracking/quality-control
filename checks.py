@@ -184,10 +184,10 @@ def positives_rate(row, log: ResultLog):
     percent_pos = 100.0 * n_pos / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
         if percent_pos > 40.0 and n_pos > 20:
-            log.data_quality(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"high positives rate {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
     else:
         if percent_pos > 80.0 and n_pos > 20:
-            log.data_quality(row.state, f"Too many positive {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"high positives rate {percent_pos:.0f}% (positive={n_pos:,}, total={n_tot:,})")
 
 def death_rate(row, log: ResultLog):
     """Check that deaths are <5% of test results"""
@@ -198,10 +198,10 @@ def death_rate(row, log: ResultLog):
     percent_deaths = 100.0 * n_deaths / n_tot if n_tot > 0 else 0.0
     if n_tot > 100:
         if percent_deaths > 5.0:
-            log.data_quality(row.state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"high death rate {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
     else:
         if percent_deaths > 10.0:
-            log.data_quality(row.state, f"Too many deaths {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"high death rate {percent_deaths:.0f}% (positive={n_deaths:,}, total={n_tot:,})")
 
 
 def less_recovered_than_positive(row, log: ResultLog):
@@ -220,10 +220,10 @@ def pendings_rate(row, log: ResultLog):
 
     if n_tot > 1000:
         if percent_pending > 20.0:
-            log.data_quality(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"high pending rate {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
     else:
         if percent_pending > 80.0:
-            log.data_quality(row.state, f"too many pending {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
+            log.data_quality(row.state, f"high pending rate {percent_pending:.0f}% (pending={n_pending:,}, total={n_tot:,})")
 
 
 # ----------------------------------------------------------------
