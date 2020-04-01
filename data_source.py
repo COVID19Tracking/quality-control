@@ -173,39 +173,76 @@ class DataSource:
         # make dev columns match api columns so quality
         # checks run with both inputs
         column_map = {
-            'TESTING & OUTCOMES State':'state',
-            'TESTING & OUTCOMES Positive':'positive',
-            'TESTING & OUTCOMES Negative':'negative',
-            'TESTING & OUTCOMES Pending':'pending',
-            'Hospitalized Current':'hospitalized',
-            'Hospitalized Cumulative':'hospitalizedCumulative',
-            'ICU Current':'icu',
-            'ICU Cumulative':'icuCumulative',
-            'Ventilator Current':'ventilator',
-            'Ventilator Cumulative':'ventilatorCumulative',
-            'Ventilator Recovered':'recovered', # api misreads from sheet
-            'Ventilator Deaths':'death', # api misreads from sheet
-            'CALCULATED Total':'total',
-            'CALCULATED Last Update (ET)':'lastUpdateEt',
-            'CHECKER METADATA Last Check (ET)':'lastCheckEt',
+            'State':'state',
+
+            'Dashboard': '',
+            'State Name': '',
+            'State COVID-19 Page': '',
+            'State Social Media': '',
+            'State Social Media': '',
+            'Press Conferences': '',
+            'GIS Query': '',
+            'Other': '',
+            '#Reporting': '',
+            'URL Watch': '',
+            'Status': '',
+            'URL Watch Diff': '',
+            'Alerted': '',
+            'Last Alert': '',
+            'Error': '',
+            'Prev Last Check (ET)': '',
+            'Freshness': '',
+            'Flagged': '',
+            'Time zone +/–': '',
+            'Public': '',
+            'Private': '',
+
+            'Local Time':'',
+            'Positive':'positive',
+            'Negative':'negative',
+            'Pending':'pending',
+            'Currently Hospitalized':'hospitalized',
+            'Cumulative Hospitalized':'hospitalizedCumulative',
+            'Currently in ICU':'icu',
+            'Cumulative in ICU':'icuCumulative',
+            'Currently on Ventilator':'ventilator',
+            'Cumulative on Ventilator':'ventilatorCumulative',
+            'Recovered':'recovered', # api misreads from sheet
+            'Deaths':'death', # api misreads from sheet
+            'Total':'total',
+            'Last Update (ET)': 'lastUpdateEt',
+            'Last Check (ET)': 'lastCheckEt',
             'Checker':'checker',
-            'Double Checker':'doubleChecker'
+            'Doublechecker':'doubleChecker'
         }
 
         gs = WorksheetWrapper()
         dev_id = gs.get_sheet_id_by_name("dev")
-        df = gs.read_as_frame(dev_id, "Worksheet!G2:W60", header_rows=2)
+        df = gs.read_as_frame(dev_id, "Worksheet 2!A2:AL60", header_rows=1)
 
         # check names and rename/suppress columns
+        has_error = False
         names = []
+        to_delete = []
         for n in df.columns.values:
             n2 = column_map.get(n)
             if n2 == None:
-                logger.warning(f"  Unexpected column: {n} in google sheet")
+                has_error = True
+                logger.error(f"  Unexpected column: [{n}] in google sheet")
             if n2 == '':
-                del df[n]
+                to_delete.append(n)
             else:
                 names.append(n2)
+        for n in column_map:
+            if not (n in df.columns):
+                has_error = True
+                logger.error(f"  Missing column: [{n}] in google sheet")
+
+        if has_error:
+            raise Exception("Columns in google have changed")
+            
+        for n in to_delete:
+            del df[n]
 
         df.columns = names
 
