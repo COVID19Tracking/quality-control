@@ -296,23 +296,31 @@ def last_change_date(val, vec_vals: pd.Series, vec_date) -> datetime:
             return udatetime.naivedatetime_as_eastern(d)
     return None
 
-#TODO: add date to dev worksheet so we don't have to pass it around
-
-def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = None):
+def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = None) -> bool:
     """Check that new values more than previous values
 
     df contains the historical values (newest first).  offset controls how many days to look back.
     consolidate lines if everything changed
+
+    return False if it looks like we have no new data for this source so we can bypass other tests
     """
 
     if not config: config = QCConfig()
 
     df = df[df.date < row.targetDate]
 
+    dict_row = row._asdict()
+
+
     # local time is an editable field that it supposed to be the last time the data changed.
     # last_updated is the same value but adjusted to eastern TZ 
-    local_time = row.localTime 
-    d_local = local_time.year * 10000 + local_time.month * 100 + local_time.day
+    if "localTime" in dict_row:
+        local_time = row.localTime 
+        d_local = local_time.year * 10000 + local_time.month * 100 + local_time.day
+    else:
+        local_time = None
+        d_local = 0
+
     last_updated = row.lastUpdateEt
     d_updated = last_updated.year * 10000 + last_updated.month * 100 + last_updated.day
 
@@ -323,7 +331,6 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
 
     d_last_change = udatetime.naivedatetime_as_eastern(datetime(2020,1,1))
 
-    dict_row = row._asdict()
 
     debug = config.enable_debug
 
@@ -376,10 +383,10 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
             continue
 
     if d_last_change.year == 2020 and d_last_change.month == 1 and d_last_change.day == 1: # update-to-date
-        return
+        return True
 
     # alert if local time appears to updated incorrectly
-    if d_local != d_updated:
+    if d_local != 0 and d_local != d_updated:
         sd = str(d_last_change)
         sd = sd[4:6] + "/" + sd[6:8]
         sd_local = f"{local_time.month}/{local_time.day} {local_time.hour:02}:{local_time.minute:02}"
@@ -387,12 +394,14 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
         if checker == "": checker = "??"        
         log.data_entry(row.state, f"checker {checker} set local time (column V) to {sd_local} but values haven't changed since {sd} ({n_days:.0f} days ago)")
 
-
-    # only show one message if all values are same
-    if  consolidate:
-        log.data_source(row.state, f"positive/negative/deaths haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
-    else:
+    if not consolidate:
         for m in is_same_messages: log.data_source(row.state, m)
+        return True
+
+    # only show one message if all values are same and signal that we don't need to run downstream tests
+    log.data_source(row.state, f"positive/negative/deaths haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
+    return False
+
 
 
 # ----------------------------------------------------------------
