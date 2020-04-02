@@ -16,7 +16,7 @@ from app.util import udatetime
 class ResultCategory(Enum):
     DATA_QUALITY = "data quality"
     DATA_SOURCE = "data source"
-    OPERATIONAL = "operations"
+    DATA_ENTRY = "data entry"
     INTERNAL_ERROR = "internal error"
 
 class ResultMessage:
@@ -69,8 +69,8 @@ class ResultLog():
     #def info(self, location: str, message: str) -> None:
     #    self.add(ResultCategory.INFO, location, message)
 
-    def operational(self, location: str, message: str) -> None:
-        self.add(ResultCategory.OPERATIONAL, location, message)
+    def data_entry(self, location: str, message: str) -> None:
+        self.add(ResultCategory.DATA_ENTRY, location, message)
     def data_quality(self, location: str, message: str) -> None:
         self.add(ResultCategory.DATA_QUALITY, location, message)
     def data_source(self, location: str, message: str) -> None:
@@ -191,7 +191,7 @@ def test():
     log = ResultLog()
     log.data_quality("NY", "Looking kinda scary.  > 50K")
     log.data_source("TX", "We're missing stuff, find it")
-    log.operational("FL", '"Let''s Ignore It"')
+    log.data_entry("FL", '"Let''s Ignore It"')
 
     print("--- print ----")
     log.print()
