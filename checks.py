@@ -452,21 +452,21 @@ def expected_positive_increase( row, history: pd.DataFrame,
     debug = config.enable_debug
     if debug: logger.debug(f"{forecast.state}: actual = {actual_value:,}, linear={expected_linear:,}, exp={expected_exp:,}")
 
-    is_bad = False 
+    is_bad = False
     if 100 < expected_linear > 100_000:
         logger.error(f"{forecast.state}: actual = {actual_value:,}, linear model = {expected_linear:,} ")
         log.internal_error(forecast.state, f"actual = {actual_value:,}, linear model = {expected_linear:,} ")
-        is_bad = True 
+        is_bad = True
     if 100 < expected_linear > 100_000:
         logger.error(f"{forecast.state}: actual = {actual_value:,}, exponental model = {expected_exp:,} ")
         log.internal_error(forecast.state, f"actual = {actual_value:,}, exponental model = {expected_exp:,} ")
-        is_bad = True 
+        is_bad = True
     if (not is_bad) and (expected_linear >= expected_exp):
         logger.error(f"{forecast.state}: actual = {actual_value:,}, linear model ({expected_linear:,}) > exponental model ({expected_exp:,})")
         log.internal_error(forecast.state, f"actual = {actual_value:,}, linear model ({expected_linear:,}) > exponental model ({expected_exp:,})")
-        is_bad = True 
+        is_bad = True
 
-    if is_bad: 
+    if is_bad:
         logger.error(f"{forecast.state}: fit\n{history[['date', 'positive','total']]}")
         logger.error(f"{forecast.state}: project {current.targetDate} positive={current.positive:,}, total={current.total:,}")
     elif debug:
@@ -482,15 +482,27 @@ def expected_positive_increase( row, history: pd.DataFrame,
     # limit to N>=100
     if actual_value < 100: return
 
+    m, d = str(forecast.date)[4:6],str(forecast.date)[6:]
+    sd = f"for {m}/{d}" if config.show_dates else ""
+
     if not (min_value <= actual_value <=  max_value):
 
-        m, d = str(forecast.date)[4:6],str(forecast.date)[6:]
-        sd = f"for {m}/{d}" if config.show_dates else ""
-
-        #log.data_quality(state, f"unexpected {direction} in positive cases ({actual_value:,}) for {date}, expected between {min_value:,} and {max_value:,}")
         if actual_value < expected_linear:
             log.data_quality(forecast.state, f"positive ({actual_value:,}){sd} decelerated beyond linear trend, expected > {min_value:,}")
         else:
             log.data_quality(forecast.state, f"positive ({actual_value:,}){sd} accelerated beyond exponential trend, expected < {max_value:,}")
 
+    # if the linear projection is steeper than the exp let's
+    # check that the value is somewhat similar to the linear projection
+    # (linear model * threshold)
+    elif min_value >= max_value:
 
+        high_linear = int(FIT_THRESHOLDS[1] * expected_linear)
+        low_linear = int(expected_linear - (high_linear - expected_linear))
+
+        if not (low_linear <= actual_value <= high_linear):
+
+            if actual_value < low_linear:
+                log.data_quality(forecast.state, f"positive ({actual_value:,}){sd} decelerated beyond linear trend, expected > {low_linear:,}")
+            else:
+                log.data_quality(forecast.state, f"positive ({actual_value:,}){sd} accelerated beyond exponential trend, expected < {high_linear:,}")
