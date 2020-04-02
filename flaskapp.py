@@ -8,7 +8,7 @@
 #     4. browse http://127.0.0.1:5000/
 
 
-from flask import Flask, Response
+from flask import Flask, render_template
 from loguru import logger
 
 from flaskcheck import checks
@@ -18,27 +18,7 @@ app.register_blueprint(checks)
 
 @app.route("/", methods=["GET"])
 def index():
-    return Response(
-        b"""
-<html>
-<body>
-    <h3>COVID19 QC Checks v0.01</h3>
-
-    <table>
-        <tr>
-            <th>DataSet</th><th>HTML</th><th>JSON</th><th>CSV</th>
-        </tr>
-        <tr>
-            <td>WORKING</td>
-            <td><a href='/checks/working.html'>/checks/working.html</a></td>
-            <td><a href='/checks/working.json'>/checks/working.json</a></td>
-            <td><a href='/checks/working.csv'>/checks/working.csv</a></td>
-        </tr>
-    </table>
-</body>
-</html>
-""",
-        mimetype="text/html", status=200)
+    return render_template("index.html")
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')

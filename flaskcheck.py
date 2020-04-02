@@ -3,15 +3,15 @@
 #
 
 import os
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, Response, render_template
 import json
 from loguru import logger
 
 from run_quality_service import get_proxy
 
-checks = Blueprint("checks", __name__)
+checks = Blueprint("checks", __name__, url_prefix='/checks')
 
-@checks.route("/checks/working.json", methods=["GET"])
+@checks.route("/working.json", methods=["GET"])
 def working_json():
     try:
         service = get_proxy()
@@ -22,18 +22,18 @@ def working_json():
         return str(ex), 500
 
 
-@checks.route("/checks/working.html", methods=["GET"])
+@checks.route("/working.html", methods=["GET"])
 def working_html():
     try:
         service = get_proxy()
         result = service.working_html
-        return Response(result, mimetype="text/html", status=200)
+        return render_template("working_results.html", result=result)
     except Exception as ex:
         logger.error(f"Exception: {ex}")
         return str(ex), 500
 
 
-@checks.route("/checks/working.csv", methods=["GET"])
+@checks.route("/working.csv", methods=["GET"])
 def working_csv():
     try:
         service = get_proxy()

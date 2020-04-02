@@ -134,33 +134,30 @@ class ResultLog():
     def format_table(self, cat: ResultCategory) -> List[str]:
         caption = f"  <h2>{cat.value.upper()}</h2>"
         xcls = cat.value.lower().replace(" ", "-")
-        df = pd.DataFrame(columns=["Category", "Location", "Message"])
+        df = pd.DataFrame(columns=["Location", "Message"])
         for x in self.by_category(cat):
-            df.loc[df.shape[0]] = [cat.value.upper(), x.location, x.message]
+            df.loc[df.shape[0]] = [x.location, x.message]
 
-        return  [caption, df.to_html(justify='left')] # lines
+        return  [caption, df.to_html(justify='left', index=False)] # lines
 
     def to_html(self, as_fragment=False) -> str:
         lines = []
 
         if not as_fragment:
-            lines.append('<html>')
-            lines.append('  <head>')
-            lines.append('    <link rel="stylesheet" href="/static/result_log.css" type="text/css" />')
-            lines.append('  </head>')
             lines.append('  <body>')
 
-        lines.append('    <div class="data-container">')
+        lines.append('    <div class="container">')
         for cat in ResultCategory:
-            lines.append('    <div class="data-panel">')
-
+            lines.append('    <div class="row">')
+            lines.append('    <div class="one column"></div>')
+            lines.append('    <div class="ten columns">')
             lines.extend(self.format_table(cat))
+            lines.append('    </div>')
             lines.append('    </div>')
         lines.append('    </div>')
 
         if not as_fragment:
             lines.append('  </body>')
-            lines.append('</html>')
 
         return '\n'.join(lines)
 
