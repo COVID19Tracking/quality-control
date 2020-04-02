@@ -230,10 +230,10 @@ def pendings_rate(row, log: ResultLog):
 # ----------------------------------------------------------------
 
 COUNTY_ERROR_THRESHOLDS = {
-    "positive-small": (.75, 1.3),
-    "positive-large": (.75, 1.2),
-    "death-small": (.75, 1.4),
-    "death-large": (.75, 1.3),
+    "positive-small": (.5, 1.5),
+    "positive-large": (.75, 1.25),
+    "death-small": (.5, 1.5),
+    "death-large": (.75, 1.25),
 }
 
 def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
@@ -260,23 +260,24 @@ def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
     df["d_max"] = (thresholds[1] * df["deaths"] + 10).astype(np.int)
     df["d_ok"] = (df.d_min <= df.d) & (df.d <= df.d_max)
 
-    # use last (biggest value)
-    #index = (df.shape[0] // 2)
-    xindex = df.shape[0] - 1
+    # use median
+    xindex = (df.shape[0] // 2)
+    # use biggest value
+    #xindex = df.shape[0] - 1
 
-    if row.positive > 100:
+    if row.positive > 1000:
         df.sort_values(by="cases", inplace=True)
         mid = df.iloc[xindex]
         if not mid.c_ok:
             print(f"  positive ({row.positive:,}) does not match county aggregate ({mid.c_min:,} to {mid.c_max:,})")
-            log.data_quality(row.state, f"positive ({row.positive:,}) does not match county aggregate ({mid.cases:,}, allow {mid.c_min:,} to {mid.c_max:,})")
+            log.data_quality(row.state, f"positive ({row.positive:,}) does not match {mid.source} county aggregate ({mid.cases:,}, allow {mid.c_min:,} to {mid.c_max:,})")
 
-    if row.death > 20:
+    if row.death > 200:
         df.sort_values(by="deaths", inplace=True)
         mid = df.iloc[xindex]
         if not mid.d_ok:
             print(f"  death ({row.death:,}) does not match county aggregate ({mid.d_min:,} to {mid.d_max:,})")
-            log.data_quality(row.state, f"death ({row.death:,}) does not match county aggregate ({mid.deaths:,}, allow {mid.d_min:,} to {mid.d_max:,})")
+            log.data_quality(row.state, f"death ({row.death:,}) does not match {mid.source} county aggregate ({mid.deaths:,}, allow {mid.d_min:,} to {mid.d_max:,})")
 
 # ----------------------------------------------------------------
 
