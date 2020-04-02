@@ -250,9 +250,48 @@ class DataSource:
         for c in df.columns[1:idx]:
             df[c] = self.safe_convert_to_int(df, c)
 
+        def fix_date(s: str) -> str:
+            if "-" in s:
+                # yyyy-mm-dd mm:hh format
+                idx = s.index(" ")
+                if idx > 0:
+                    stime = s[idx:]
+                    sdate = s[0:idx]
+                else:
+                    stime = " 00:00"
+                    sdate = s
+                parts = sdate.split("-")
+                sdate = parts[1] + "/" + parts[2] + "/" + parts[0]
+                s =  sdate + stime
+                print(s)
+                return s
+            elif "/" in s:
+                if s[3] == '/' and s[5] == '/' and len(s) == 16:
+                    print(s)
+                    return s
+
+                # m/d/y h:m format
+                idx = s.index(" ")
+                if idx > 0:
+                    stime = s[idx:]
+                    sdate = s[0:idx]
+                else:
+                    stime = " 00:00"
+                    sdate = s
+                parts = sdate.split("/")
+                if len(parts[0]) == 1: parts[0] = "0" + parts[0]
+                if len(parts[1]) == 1: parts[1] = "0" + parts[1]
+                if len(parts) == 2: parts.append("2020")
+                sdate = parts[0] + "/" + parts[1] + "/" + parts[2]
+                s =  sdate + stime
+                return s
+            elif s == "":
+                return "01/01/2020 00:00"
+            else:
+                raise Exception(f"Not a date ({s})")
+
         def convert_date(s: pd.Series) -> pd.Series:
-            s = s.replace('', "01/01 00:00") # whole string match
-            s = s.str.replace(' ', "/2020 ") # partial string match
+            s = s.apply(fix_date)
             s = pd.to_datetime(s, format="%m/%d/%Y %H:%M") \
                 .apply(udatetime.pandas_timestamp_as_eastern)
             return s
