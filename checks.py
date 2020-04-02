@@ -230,29 +230,53 @@ def pendings_rate(row, log: ResultLog):
 # ----------------------------------------------------------------
 
 COUNTY_ERROR_THRESHOLDS = {
-    "positive": .1,
-    "death": .2
+    "positive-small": (.75, 1.3),
+    "positive-large": (.75, 1.2),
+    "death-small": (.75, 1.4),
+    "death-large": (.75, 1.3),
 }
 
 def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
     """
     Check that county totals from NYT, CSBS, CDS datasets are
-    about equal to the reported state totals. Metrics compared are:
+ about equal to the reported state totals. Metrics compared are:
         - positive cases
         - patient deaths
     """
+
+    df = counties.copy()
+
+    t = "positive-small" if row.positive < 500 else "positive-large"
+    thresholds = COUNTY_ERROR_THRESHOLDS[t]
+    df["c"] = row.positive
+    df["c_min"] = (thresholds[0] * df["cases"]).astype(np.int)
+    df["c_max"] = (thresholds[1] * df["cases"] + 10).astype(np.int)
+    df["c_ok"] = (df.c_min <= df.c) & (df.c <= df.c_max)
+
+    t = "death-small" if row.death < 50 else "death-large"
+    thresholds = COUNTY_ERROR_THRESHOLDS[t]
+    df["d"] = row.death
+    df["d_min"] = (thresholds[0] * df["deaths"]).astype(np.int)
+    df["d_max"] = (thresholds[1] * df["deaths"] + 10).astype(np.int)
+    df["d_ok"] = (df.d_min <= df.d) & (df.d <= df.d_max)
+
+    # use last (biggest value)
+    #index = (df.shape[0] // 2)
+    xindex = df.shape[0] - 1
+
     if row.positive > 100:
-        pos_error =  abs(counties["cases"] - row.positive).min() / row.positive
-        if pos_error > COUNTY_ERROR_THRESHOLDS["positive"]:
-            closest_pos = int(round(pos_error * row.positive + row.positive))
-            log.data_quality(row.state, f"positive ({row.positive:,}) does not match county aggregate ({closest_pos:,})")
+        df.sort_values(by="cases", inplace=True)
+        mid = df.iloc[xindex]
+        if not mid.c_ok:
+            print(f"  positive ({row.positive:,}) does not match county aggregate ({mid.c_min:,} to {mid.c_max:,})")
+            log.data_quality(row.state, f"positive ({row.positive:,}) does not match county aggregate ({mid.cases:,}, allow {mid.c_min:,} to {mid.c_max:,})")
 
     if row.death > 20:
-        death_error = abs(counties["deaths"] - row.death).min() / row.death
-        if death_error > COUNTY_ERROR_THRESHOLDS["death"]:
-            closest_death = int(round(death_error * row.death + row.death))
-            log.data_quality(row.state, f"death ({row.death:,}) does not match county aggregate ({closest_death:,})")
-
+        df.sort_values(by="deaths", inplace=True)
+        mid = df.iloc[xindex]
+        if not mid.d_ok:
+            print(f"  death ({row.death:,}) does not match county aggregate ({mid.d_min:,} to {mid.d_max:,})")
+            log.data_quality(row.state, f"death ({row.death:,}) does not match county aggregate ({mid.deaths:,}, allow {mid.d_min:,} to {mid.d_max:,})")
 
 # ----------------------------------------------------------------
 
