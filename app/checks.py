@@ -8,7 +8,7 @@
 #
 #   Each row has a 'phase' appended to it that can be used to control how
 #   errors are reported.  At certain times, fields like checked are expected
-#   to be cleared.  This should mainly be used with operational cheks.
+#   to be cleared.  This should mainly be used with data entry checks.
 #
 # To add a new check:
 #    1. create the routine here
@@ -72,17 +72,17 @@ def total(row, log: ResultLog):
 
     n_diff = n_tot - (n_pos + n_neg + n_pending)
     if n_pos == -1000:
-        log.operational(row.state, f"Data Entry Error on positive")
+        log.data_entry(row.state, f"Data Entry Error on positive")
     elif n_neg == -1000:
-        log.operational(row.state, f"Data Entry Error on negative")
+        log.data_entry(row.state, f"Data Entry Error on negative")
     elif n_pending == -1000:
-        log.operational(row.state, f"Data Entry Error on pending")
+        log.data_entry(row.state, f"Data Entry Error on pending")
     elif n_death == -1000:
-        log.operational(row.state, f"Data Entry Error on death")
+        log.data_entry(row.state, f"Data Entry Error on death")
     elif n_tot == -1000:
-        log.operational(row.state, f"Data Entry Error on total")
+        log.data_entry(row.state, f"Data Entry Error on total")
     elif n_diff != 0:
-        log.operational(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
+        log.data_entry(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
 
 def total_tests(row, log: ResultLog):
     """Check that positive, and negative sum to the reported totalTest"""
@@ -94,7 +94,7 @@ def total_tests(row, log: ResultLog):
 
     n_diff = n_tests - (n_pos + n_neg)
     if n_diff != 0:
-        log.operational(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) != Total Tests ({n_tests}), delta = {n_diff}")
+        log.data_entry(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) != Total Tests ({n_tests}), delta = {n_diff}")
 
 
 def last_update(row, log: ResultLog):
@@ -122,7 +122,7 @@ def last_checked(row, log: ResultLog):
         if phase == "inactive":
             pass
         elif phase in ["publish", "update"]:
-            log.operational(row.state, f"last check ET (column AK) is blank")
+            log.data_entry(row.state, f"last check ET (column AK) is blank")
         elif phase in ["prepare", "cleanup"]:
             pass
         return
@@ -132,14 +132,14 @@ def last_checked(row, log: ResultLog):
     if hours > 1.0:
         s_updated = updated_at.strftime('%m/%d %H:%M')
         s_checked = checked_at.strftime('%m/%d %H:%M')
-        log.operational(row.state, f"Last Check ET (column AJ) is {s_checked} which is less than Last Update ET (column AI)  {s_updated} by {hours:.0f} hours")
+        log.data_entry(row.state, f"Last Check ET (column AJ) is {s_checked} which is less than Last Update ET (column AI)  {s_updated} by {hours:.0f} hours")
         return
 
     delta = target_date - checked_at
     hours = delta.total_seconds() / (60.0 * 60)
     if hours > 6.0:
         s_checked = checked_at.strftime('%m/%d %H:%M')
-        log.operational(row.state, f"Last Check ET (column AJ) has not been updated in {hours:.0f} hours ({s_checked} by {row.checker})")
+        log.data_entry(row.state, f"Last Check ET (column AJ) has not been updated in {hours:.0f} hours ({s_checked} by {row.checker})")
         return
 
 
@@ -163,13 +163,13 @@ def checkers_initials(row, log: ResultLog):
     if checker == "":
         if 0 < delta_hours < 5:
             s_checked = checked_at.strftime('%m/%d %H:%M')
-            log.operational(row.state, f"missing checker initials (column AK) but checked date set recently (at {s_checked})")
+            log.data_entry(row.state, f"missing checker initials (column AK) but checked date set recently (at {s_checked})")
         elif is_near_release:
-            log.operational(row.state, f"missing checker initials (column AK)")
+            log.data_entry(row.state, f"missing checker initials (column AK)")
         return
     if doubleChecker == "":
         if is_near_release:
-            log.operational(row.state, f"missing double-checker initials (column AL)")
+            log.data_entry(row.state, f"missing double-checker initials (column AL)")
         return
 
     #elif hours > 18.0:
@@ -287,12 +287,14 @@ IGNORE_THRESHOLDS = {
     "death": 20,
 }
 
-def days_since_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, int]:
-
+def last_change_date(val, vec_vals: pd.Series, vec_date) -> datetime:
     vals = vec_vals.values
     for i in range(len(vals)):
-        if vals[i] != val: return i+1, vec_date.values[i]
-    return -1, None
+        if vals[i] != val: 
+            sdate = str(vec_date.values[i])
+            d = datetime(int(sdate[0:4]), int(sdate[4:6]), int(sdate[6:8]))
+            return udatetime.naivedatetime_as_eastern(d)
+    return None
 
 #TODO: add date to dev worksheet so we don't have to pass it around
 
@@ -307,9 +309,19 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
 
     df = df[df.date < row.targetDate]
 
+    # local time is an editable field that it supposed to be the last time the data changed.
+    # last_updated is the same value but adjusted to eastern TZ 
+    local_time = row.localTime 
+    d_local = local_time.year * 10000 + local_time.month * 100 + local_time.day
     last_updated = row.lastUpdateEt
     d_updated = last_updated.year * 10000 + last_updated.month * 100 + last_updated.day
-    d_last_change = 20200101
+
+    # target date of run
+    s_target = str(row.targetDate)
+    d_target = datetime(int(s_target[0:4]), int(s_target[4:6]), int(s_target[6:8]))
+    d_target = udatetime.naivedatetime_as_eastern(d_target)
+
+    d_last_change = udatetime.naivedatetime_as_eastern(datetime(2020,1,1))
 
     dict_row = row._asdict()
 
@@ -336,20 +348,20 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
         is_check_field_set = checked_at > START_OF_TIME
 
         if val == -1000:
-            log.operational(row.state, f"{c} value cannot be converted to a number")
+            log.data_entry(row.state, f"{c} value cannot be converted to a number")
             consolidate = False
             continue
 
         if val == prev_val:
-            n_days, d = days_since_change(val, df[c], df["date"])
+            d_changed = last_change_date(val, df[c], df["date"])
+
+            n_days = (d_target - d_changed).total_seconds() // (60*60*24)  
             if n_days >= 0:
-                d_last_change = max(d_last_change, d)
+                d_last_change = max(d_last_change, d_changed)
 
                 if prev_val >= 20 and (is_check_field_set or phase in ["publish", "update"]):
-                    sd = str(d)
-                    sd = sd[4:6] + "/" + sd[6:8]
-                    is_same_messages.append(f"{c} ({val:,}) hasn't changed since {sd} ({n_days} days)")
-                    if debug: logger.debug(f"{c} ({val:,}) hasn't changed since {sd} ({n_days} days)")
+                    is_same_messages.append(f"{c} ({val:,}) hasn't changed since {d_changed.month}/{d_changed.day} ({n_days} days)")
+                    if debug: logger.debug(f"{c} ({val:,}) hasn't changed since {d_changed.month}/{d_changed.day} ({n_days} days)")
 
                 if n_days_prev == 0:
                     n_days_prev = n_days
@@ -363,21 +375,22 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
                 consolidate = False
             continue
 
-    if d_last_change == 20200101:
+    if d_last_change.year == 2020 and d_last_change.month == 1 and d_last_change.day == 1: # update-to-date
         return
 
     # alert if local time appears to updated incorrectly
-    elif d_last_change != d_updated:
+    if d_local != d_updated:
         sd = str(d_last_change)
         sd = sd[4:6] + "/" + sd[6:8]
-        sd_updated = f"{last_updated.month}/{last_updated.day} {last_updated.hour:02}:{last_updated.minute:02}"
-        log.operational(row.state, f"local time (column V) set to {sd_updated} but values haven't changed since {sd} ({n_days} days)")
+        sd_local = f"{local_time.month}/{local_time.day} {local_time.hour:02}:{local_time.minute:02}"
+        checker = row.checker
+        if checker == "": checker = "??"        
+        log.data_entry(row.state, f"checker {checker} set local time (column V) to {sd_local} but values haven't changed since {sd} ({n_days:.0f} days ago)")
+
 
     # only show one message if all values are same
     if  consolidate:
-        sd = str(d_last_change)
-        sd = sd[4:6] + "/" + sd[6:8]
-        log.data_source(row.state, f"positive/negative/deaths haven't changed since {sd} ({n_days} days)")
+        log.data_source(row.state, f"positive/negative/deaths haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
     else:
         for m in is_same_messages: log.data_source(row.state, m)
 

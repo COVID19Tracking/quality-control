@@ -30,6 +30,11 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
 
     d, phase = checks.current_time_and_phase()
 
+    if d.hour < 8: 
+        logger.error("[adjusting target date to previous day because hour < 8]")
+        d = d - timedelta(days=1)
+    d = naivedatetime_as_eastern(datetime(d.year, d.month, d.day))
+
     ds._target_date = d
 
     df = ds.working
@@ -39,7 +44,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     df["targetDateEt"] = d
     df["phase"] = phase
 
-    logger.info(f"Running with target date = {d} and phase = {phase}")
+    logger.info(f"Running with target date = {d.date()} and phase = {phase}")
 
     # *** WHEN YOU CHANGE A CHECK THAT IMPACTS WORKING, MAKE SURE TO UPDATE THE EXCEL TRACKING DOCUMENT ***
 
