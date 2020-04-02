@@ -449,6 +449,9 @@ def expected_positive_increase( row, history: pd.DataFrame,
 
     actual_value, expected_linear, expected_exp = forecast.results
 
+    # limit to N >= 300
+    if actual_value < 300: return
+
     # --- sanity checks ----
     debug = config.enable_debug
     if debug: logger.debug(f"{forecast.state}: actual = {actual_value:,}, linear={expected_linear:,}, exp={expected_exp:,}")
@@ -480,8 +483,6 @@ def expected_positive_increase( row, history: pd.DataFrame,
     min_value = int(FIT_THRESHOLDS[0] * expected_linear)
     max_value = int(FIT_THRESHOLDS[1] * expected_exp)
 
-    # limit to N>=100
-    if actual_value < 100: return
 
     m, d = str(forecast.date)[4:6],str(forecast.date)[6:]
     sd = f"for {m}/{d}" if config.show_dates else ""
