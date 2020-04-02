@@ -194,9 +194,10 @@ class DataSource:
             'Flagged': '',
             'Time zone +/–': '',
             'Public': '',
-            'Private': '',
+            '': '',
+        #    'Private': '',
 
-            'Local Time':'',
+            'Local Time':'localTime',
             'Positive':'positive',
             'Negative':'negative',
             'Pending':'pending',
@@ -245,61 +246,24 @@ class DataSource:
 
         df.columns = names
 
-        idx = df.columns.get_loc("lastUpdateEt")
+        idx = df.columns.get_loc("localTime")
+        eidx = df.columns.get_loc("lastUpdateEt")
 
-        for c in df.columns[1:idx]:
+        for c in df.columns[idx+1:eidx]:
             df[c] = self.safe_convert_to_int(df, c)
 
-        def fix_date(s: str) -> str:
-            if "-" in s:
-                # yyyy-mm-dd mm:hh format
-                idx = s.index(" ")
-                if idx > 0:
-                    stime = s[idx:]
-                    sdate = s[0:idx]
-                else:
-                    stime = " 00:00"
-                    sdate = s
-                parts = sdate.split("-")
-                sdate = parts[1] + "/" + parts[2] + "/" + parts[0]
-                s =  sdate + stime
-                print(s)
-                return s
-            elif "/" in s:
-                if s[3] == '/' and s[5] == '/' and len(s) == 16:
-                    print(s)
-                    return s
-
-                # m/d/y h:m format
-                idx = s.index(" ")
-                if idx > 0:
-                    stime = s[idx:]
-                    sdate = s[0:idx]
-                else:
-                    stime = " 00:00"
-                    sdate = s
-                parts = sdate.split("/")
-                if len(parts[0]) == 1: parts[0] = "0" + parts[0]
-                if len(parts[1]) == 1: parts[1] = "0" + parts[1]
-                if len(parts) == 2: parts.append("2020")
-                sdate = parts[0] + "/" + parts[1] + "/" + parts[2]
-                s =  sdate + stime
-                return s
-            elif s == "":
-                return "01/01/2020 00:00"
-            else:
-                raise Exception(f"Not a date ({s})")
-
-        def convert_date(s: pd.Series) -> pd.Series:
-            s = s.apply(fix_date)
-            s = pd.to_datetime(s, format="%m/%d/%Y %H:%M") \
-                .apply(udatetime.pandas_timestamp_as_eastern)
+        def convert_date(s: pd.Series, as_eastern: bool = True) -> pd.Series:
+            s = s.apply(udatetime.standardize_date)
+            s = pd.to_datetime(s, format="%m/%d/%Y %H:%M")
+            if as_eastern:
+                s = s.apply(udatetime.pandas_timestamp_as_eastern)
             return s
 
-        # remove current time from first riate
-        current_time = df.loc[0, "lastCheckEt"].replace("CURRENT NAME: ", "")
-        df.loc[0, "lastCheckEt"] = ""
+        # remove current time from first row
+        #current_time = df.loc[0, "lastCheckEt"].replace("CURRENT NAME: ", "")
+        #df.loc[0, "lastCheckEt"] = ""
 
+        df["localTime"] = convert_date(df["localTime"], as_eastern=False)
         df["lastUpdateEt"] = convert_date(df["lastUpdateEt"])
         df["lastCheckEt"] = convert_date(df["lastCheckEt"])
 
