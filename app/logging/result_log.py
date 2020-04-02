@@ -146,13 +146,10 @@ class ResultLog():
         if not as_fragment:
             lines.append('  <body>')
 
-        lines.append('    <div class="container">')
+        lines.append('    <div class="container working-results">')
         for cat in ResultCategory:
             lines.append('    <div class="row">')
-            lines.append('    <div class="one column"></div>')
-            lines.append('    <div class="ten columns">')
             lines.extend(self.format_table(cat))
-            lines.append('    </div>')
             lines.append('    </div>')
         lines.append('    </div>')
 

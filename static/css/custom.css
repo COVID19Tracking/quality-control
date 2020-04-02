@@ -1,0 +1,8 @@
+.dataframe {
+    width: 100%;
+}
+
+.container.index,
+.container.working-results {
+    margin: 50px 50px;
+}
