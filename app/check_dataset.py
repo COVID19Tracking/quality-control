@@ -63,8 +63,9 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
             checks.pendings_rate(row, log)
 
             df_history = ds.history[ds.history.state == row.state]
-            checks.increasing_values(row, df_history, log, config)
-            checks.expected_positive_increase(row, df_history, log, "working", config)
+            has_changed = checks.increasing_values(row, df_history, log, config)
+            if has_changed:
+                checks.expected_positive_increase(row, df_history, log, "working", config)
 
             if not ds.county_rollup is None:
                 df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
@@ -112,8 +113,9 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     df = ds.current
     if df is None: return None
 
-    publish_date = 20200401
-    logger.error(f" [date is hard-coded to {publish_date}]")
+    publish_date = 20200402
+    logger.warning(f" ** current-date is hard-coded to {publish_date}")
+    logger.warning(f" ** because the API does not tell us the date the results were published")
 
     # setup run settings equivalent to publish date at 5PM
     s = str(publish_date)
@@ -135,8 +137,9 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
         checks.pendings_rate(row, log)
 
         df_history = ds.history[ds.history.state == row.state]
-        checks.increasing_values(row, df_history, log, config)
-        checks.expected_positive_increase(row, df_history, log, "current", config)
+        has_changed = checks.increasing_values(row, df_history, log, config)
+        if has_changed:
+            checks.expected_positive_increase(row, df_history, log, "current", config)
 
         if not ds.county_rollup is None:
             df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
