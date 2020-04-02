@@ -11,16 +11,15 @@
 from typing import List, Dict
 from loguru import logger
 import pandas as pd
-#from pandas.io.json import json_normalize
 from urllib.request import urlopen
 import json
 import numpy as np
 import re
 
-from util import state_abbrevs
-import udatetime
-from worksheet_wrapper import WorksheetWrapper
-from error_log import ErrorLog
+from app.util import state_abbrevs
+import app.util.udatetime as udatetime
+from app.data.worksheet_wrapper import WorksheetWrapper
+from app.logging.error_log import ErrorLog
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 KEY_PATH = "credentials-scanner.json"
