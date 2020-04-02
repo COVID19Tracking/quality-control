@@ -132,57 +132,37 @@ class ResultLog():
         return dest.getvalue()
 
     def format_table(self, cat: ResultCategory) -> List[str]:
-
-        lines = []
-        lines.append("<table class='result-table'>")
-        lines.append(f"  <caption>{cat.value.upper()}</caption>")
-
-        lines.append(f"  <tr>")
-        lines.append(f"    <th class='category'>Category</td>")
-        lines.append(f"    <th class='location'>Location</td>")
-        lines.append(f"    <th class='message'>Message</td>")
-        #lines.append(f"   <th class='ms'>time (ms)</td>")
-        lines.append(f"  </tr>")
-
+        caption = f"  <h2>{cat.value.upper()}</h2>"
         xcls = cat.value.lower().replace(" ", "-")
+        df = pd.DataFrame(columns=["Category", "Location", "Message"])
+        for x in self.by_category(cat):
+            df.loc[df.shape[0]] = [cat.value.upper(), x.location, x.message]
 
-        messages = self.by_category(cat)
-        for x in messages:
-            lines.append(f"  <tr class='{xcls}'>")
-            lines.append(f"    <td class='category'>{cat.value.upper()}</td>")
-            lines.append(f"    <td class='location'>{x.location}</td>")
-            msg = html.escape(x.message).replace('\n', '<br>\n')
-            lines.append(f"    <td class='message'>{msg}</td>")
-            #lines.append(f"   <td class='ms'>{x.ms}</td>")
-            lines.append(f"  </tr>")
-
-        lines.append("</table>")
-        return lines
+        return  [caption, df.to_html(justify='left')] # lines
 
     def to_html(self, as_fragment=False) -> str:
         lines = []
 
         if not as_fragment:
-            lines.append("<html>")
-            lines.append("  <head>")
-            lines.append("    <link rel='stylesheet' href='/static/result_log.css' type='text/css' />")
-            lines.append("  </head>")
-            lines.append("  <body>")
+            lines.append('<html>')
+            lines.append('  <head>')
+            lines.append('    <link rel="stylesheet" href="/static/result_log.css" type="text/css" />')
+            lines.append('  </head>')
+            lines.append('  <body>')
 
-        lines.append("    <div class='data-container'>")
+        lines.append('    <div class="data-container">')
         for cat in ResultCategory:
-            lines.append("    <div class='data-panel'>")
+            lines.append('    <div class="data-panel">')
 
-            new_lines = self.format_table(cat)
-            lines.extend([ "      " + x for x in new_lines])
-            lines.append("    </div>")
-        lines.append("    </div>")
+            lines.extend(self.format_table(cat))
+            lines.append('    </div>')
+        lines.append('    </div>')
 
         if not as_fragment:
-            lines.append("  </body>")
-            lines.append("</html>")
+            lines.append('  </body>')
+            lines.append('</html>')
 
-        return "\n".join(lines)
+        return '\n'.join(lines)
 
 
 # -----------------------------
