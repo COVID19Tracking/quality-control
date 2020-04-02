@@ -8,7 +8,7 @@ from datetime import datetime
 from requests.packages import urllib3
 import configparser
 
-import udatetime
+from .udatetime import *
 
 urllib3.disable_warnings()
 
@@ -109,8 +109,8 @@ def convert_json_to_python(x):
     if x is None:
         pass
     elif type(x) == str:
-        if udatetime.is_isoformated(x):
-            x = udatetime.from_json(x)
+        if is_isoformated(x):
+            x = from_json(x)
     elif type(x) == datetime:
         raise Exception("JSON doesn't parse dates")
     elif type(x) == float:
@@ -150,7 +150,7 @@ def convert_python_to_json(x):
     if x is None:
         pass
     elif type(x) == str:
-        if udatetime.is_isoformated(x):
+        if is_isoformated(x):
             raise Exception("ambiguous str, content would be converted to datetime on load")
     elif type(x) == datetime:
         x = x.isoformat()

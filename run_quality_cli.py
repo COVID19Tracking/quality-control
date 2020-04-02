@@ -4,11 +4,11 @@ import sys
 from loguru import logger
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 
-import util
+from app.util import read_config_file
+from app.qc_config import QCConfig
+from app.data.data_source import DataSource
+from app.check_dataset import check_current, check_working, check_history
 
-from qc_config import QCConfig
-from data_source import DataSource
-from check_dataset import check_current, check_working, check_history
 
 def load_args_parser(config) -> ArgumentParser:
     " load arguments parser "
@@ -69,7 +69,7 @@ def main() -> None:
 
     # pylint: disable=no-member
 
-    config = util.read_config_file("quality-control")
+    config = read_config_file("quality-control")
     parser = load_args_parser(config)
     args = parser.parse_args(sys.argv)
 
@@ -80,11 +80,11 @@ def main() -> None:
         args.check_history = True
 
     config = QCConfig(
-        results_dir=args.results_dir, 
+        results_dir=args.results_dir,
         save_results=args.save_results,
         enable_experimental=args.enable_experimental,
         enable_debug=args.enable_debug,
-        images_dir=args.images_dir, 
+        images_dir=args.images_dir,
         plot_models=args.plot_models,
     )
     if config.save_results:

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from loguru import logger
 
-from forecast_plot import Forecast
+from .forecast_plot import Forecast
 
 def save_forecast_hd5(forecast: Forecast, data_dir: str):
 
@@ -29,17 +29,17 @@ def save_forecast_hd5(forecast: Forecast, data_dir: str):
 
     df_pars = pd.DataFrame({
         "linear": forecast.fitted_linear_params,
-        "exp": forecast.fitted_exp_params  
+        "exp": forecast.fitted_exp_params
     })
     df_pars.to_hdf(tmp_path, "fitted_params")
-        
+
     #h5_fout.create_dataset(
     #    name='labels',
     #    data=labels,
     #    compression='gzip', compression_opts=4,
     #    dtype=label_dtype)
 
-    
+
     os.rename(tmp_path, out_path)
     logger.debug(f"   saved results to {out_path}")
 
@@ -48,7 +48,7 @@ def load_forecast_hd5(data_dir: str, state: str, date: int) -> Forecast:
     fn = f"predicted_positives_{state}_{date}.hd5"
 
     path = os.path.join(data_dir, fn)
-    if not os.path.exists(path): 
+    if not os.path.exists(path):
         logger.warning(f"   load results to {path} -- file missing")
         return None
 
@@ -67,11 +67,11 @@ def load_forecast_hd5(data_dir: str, state: str, date: int) -> Forecast:
 
     forecast.df = pd.read_hdf(path, "df")
     forecast.cases_df = pd.read_hdf(path, "cases_df")
-    
+
     df_pars = pd.read_hdf(path, "fitted_params")
     forecast.fitted_linear_params = df_pars.linear.values
     forecast.fitted_exp_params = df_pars.exp.values
-     
+
     return forecast
 
 def test():

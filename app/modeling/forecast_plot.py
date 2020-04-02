@@ -13,11 +13,10 @@ from datetime import datetime, date, timedelta
 import pandas as pd
 import numpy as np
 from loguru import logger
-
 import matplotlib
 import matplotlib.pyplot as plt
 
-from forecast import Forecast, _exp_fit, _linear_fit
+from .forecast import Forecast, _exp_fit, _linear_fit
 
 g_first_time = True
 matplotlib.style.use('fivethirtyeight')

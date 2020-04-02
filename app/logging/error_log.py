@@ -29,7 +29,7 @@ class ErrorLog:
 
     def print(self):
         if self.has_error:
-            logger.error("Could not complete run")        
+            logger.error("Could not complete run")
         pass
 
     def to_csv(self) -> str:
@@ -40,7 +40,7 @@ class ErrorLog:
             if "," in m or '"' in m:
                 m = m.replace('"', '""')
                 m = '"' + m + '"'
-            return m.replace("\n", ";")                
+            return m.replace("\n", ";")
 
         for lev, msg, ex in self.messages:
             m = self.format_message(msg, ex)
@@ -53,9 +53,9 @@ class ErrorLog:
     def to_json(self) -> str:
         return {
             "error": self.has_error,
-            "message": [{ "level": lev, "message": self.format_message(msg, ex) } for lev, msg, ex in self.messages] 
+            "message": [{ "level": lev, "message": self.format_message(msg, ex) } for lev, msg, ex in self.messages]
         }
-        
+
 
     def to_html(self, as_fragment=False) -> str:
         lines = []

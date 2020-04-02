@@ -1,18 +1,18 @@
 #
-#  Pyro4 Service -- Cache and Run QC Checks 
+#  Pyro4 Service -- Cache and Run QC Checks
 #
 #  Hold the cache results on a singleton RPC server
 #
-import util
-import udatetime
 import Pyro4
 from loguru import logger
 
-from check_dataset import check_working  
+from app.check_dataset import check_working
 
-from result_log import ResultLog
-from data_source import DataSource
-from qc_config import QCConfig
+from app.logging.result_log import ResultLog
+from app.data.data_source import DataSource
+from app.qc_config import QCConfig
+import app.util.util as util
+import app.util.udatetime as udatetime
 
 
 def is_out_of_date(log: ResultLog, cache_seconds: int) -> bool:
@@ -37,22 +37,22 @@ class CheckServer:
 
         config = util.read_config_file("quality-control")
         self.config = QCConfig(
-            results_dir=config["CHECKS"]["results_dir"], 
+            results_dir=config["CHECKS"]["results_dir"],
             enable_experimental=config["CHECKS"]["enable_experimental"] == "True",
             enable_debug=config["CHECKS"]["enable_debug"] == "True",
             save_results=config["CHECKS"]["save_results"] == "True",
-            images_dir=config["MODEL"]["images_dir"], 
+            images_dir=config["MODEL"]["images_dir"],
             plot_models=config["MODEL"]["plot_models"] == "True",
         )
 
         self.ds = DataSource()
 
     # --- working data
-    @property 
+    @property
     def working(self) -> ResultLog:
         if is_out_of_date(self._working, 60):
             self.ds = DataSource()
-            self._working = check_working(self.ds, self.config)  
+            self._working = check_working(self.ds, self.config)
         return self._working
 
     @Pyro4.expose
@@ -106,7 +106,7 @@ def get_proxy() -> CheckServer:
     server._pyroHmacKey = KEY
     logger.info("ready")
 
-    return server 
+    return server
 
 if __name__ == '__main__':
     start_server()

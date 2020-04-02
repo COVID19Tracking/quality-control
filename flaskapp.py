@@ -1,6 +1,6 @@
 #
 # Flask App for serving check results
-# 
+#
 # To test local:
 #     1. run_check_service.py to start a Pyro4 server
 #     2. set FLASK_APP=flaskapp.py
@@ -15,7 +15,7 @@ from flaskcheck import checks
 
 app = Flask(__name__)
 app.register_blueprint(checks)
-    
+
 @app.route("/", methods=["GET"])
 def index():
     return Response(

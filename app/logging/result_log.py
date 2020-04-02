@@ -7,10 +7,11 @@ import json
 import io
 import pandas as pd
 import numpy as np
-import udatetime
 from typing import Tuple, Dict, List
 import time
 import html
+
+from app.util import udatetime
 
 class ResultCategory(Enum):
     DATA_QUALITY = "data quality"
@@ -47,7 +48,7 @@ class ResultLog():
     @property
     def messages(self) -> List[ResultMessage]:
         return self._messages
-    
+
     def by_category(self, category: ResultCategory) -> List[ResultMessage]:
         return [x for x in self._messages if x.category == category]
 
@@ -89,7 +90,7 @@ class ResultLog():
         for cat in ResultCategory:
             messages = self.by_category(cat)
             if len(messages) == 0: continue
-        
+
             print(f"=====| {cat.value.upper()} |===========")
             for x in messages:
                 print(f"{x.location}: {x.message}")
@@ -105,7 +106,7 @@ class ResultLog():
 
 
     def to_frame(self) -> pd.DataFrame:
- 
+
         n_total = len(self._messages)
         category = np.zeros(n_total, dtype=object)
         location = np.zeros(n_total, dtype=object)
@@ -146,7 +147,7 @@ class ResultLog():
         xcls = cat.value.lower().replace(" ", "-")
 
         messages = self.by_category(cat)
-        for x in messages:    
+        for x in messages:
             lines.append(f"  <tr class='{xcls}'>")
             lines.append(f"    <td class='category'>{cat.value.upper()}</td>")
             lines.append(f"    <td class='location'>{x.location}</td>")
@@ -173,7 +174,7 @@ class ResultLog():
             lines.append("    <div class='data-panel'>")
 
             new_lines = self.format_table(cat)
-            lines.extend([ "      " + x for x in new_lines]) 
+            lines.extend([ "      " + x for x in new_lines])
             lines.append("    </div>")
         lines.append("    </div>")
 
