@@ -14,6 +14,12 @@ that the numbers are internally consistent.
 
 ## Running 
 
+1. Set environment
+
+   	install python3.8.1 or later
+	python3 -m venv qc-env
+	source qc-env/bin/activate
+
 1. Install requirements 
 
         pip install -r requirements.txt
