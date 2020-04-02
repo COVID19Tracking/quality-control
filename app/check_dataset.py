@@ -19,7 +19,7 @@ from .util import *
 def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     """
     Check unpublished results in the working google sheet
-    https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528
+    (sheet URL defined in app/data/worksheet_wrapper.py)
     """
 
     log = ResultLog()
