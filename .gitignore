@@ -4,6 +4,8 @@ quality-control.local.ini
 ~*.xlsx
 results/*.hd5
 
+qc-env/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
