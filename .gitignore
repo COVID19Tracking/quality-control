@@ -3,6 +3,7 @@ images
 quality-control.local.ini
 ~*.xlsx
 results/*.hd5
+*~
 
 qc-env/
 

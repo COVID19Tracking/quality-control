@@ -1,0 +1,13 @@
+[Unit]
+Description=Pyro4 server for running quality control
+After=network.target
+
+[Service]
+User=josh
+Group=www-data
+WorkingDirectory=/home/josh/quality_control
+Environment="PATH=/home/josh/quality_control/proxyenv/bin"
+ExecStart=/home/josh/quality_control/run_quality_service.py
+
+[Install]
+WantedBy=multi-user.target

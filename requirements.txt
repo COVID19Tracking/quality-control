@@ -5,6 +5,7 @@ argparse~=1.4.0
 
 # for google sheets
 google-api-python-client~=1.8.0
+google-auth~=1.11.3
 google-auth-httplib2~=0.0.3
 google-auth-oauthlib~=0.4.1
 

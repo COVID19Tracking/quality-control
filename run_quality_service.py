@@ -1,3 +1,4 @@
+#!./qc-env/bin/python
 #
 #  Pyro4 Service -- Cache and Run QC Checks
 #

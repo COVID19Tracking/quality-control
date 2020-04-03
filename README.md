@@ -13,21 +13,28 @@ To verify internal and external consistency of reported COVID counts tracked by 
 
 This repo contains automated checks against the [working spreadsheet](https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528) and against the published [api](https://covidtracking.com/api).
 
+
+## Setup
+
+1. Set environment
+
+   	install python3.8.1 or later
+	python3 -m venv qc-env
+	source qc-env/bin/activate
+
+2. Install requirements 
+
+        pip install -r requirements.txt
+
 ## Running 
 
 You can either run this repo as a client or as a Flask app that sends requests to a Pyro4 RPC server.
 
-#### Client
-
-1. Install requirements 
-
-        pip install -r requirements.txt
-
-2. Run existing checks
+#### Command Line
 
         python run_quality_cli.py [-w, --working] [-d, --daily] [-x, --history]
 
-#### Application
+#### Web Server
 
 1. Install requirements 
 
@@ -43,9 +50,9 @@ You can either run this repo as a client or as a Flask app that sends requests t
 
 4. Open http://localhost:5000 and you should see the client running 
 
-<img src="https://raw.githubusercontent.com/COVID19Tracking/quality-control/master/static/images/github/index.png" width="500">
-<br></br>
-<img src="https://raw.githubusercontent.com/COVID19Tracking/quality-control/master/static/images/github/results_page.png" width="500">
+   <img src="https://raw.githubusercontent.com/COVID19Tracking/quality-control/master/static/images/github/index.png" width="500">
+   <br></br>
+   <img src="https://raw.githubusercontent.com/COVID19Tracking/quality-control/master/static/images/github/results_page.png" width="500">
 
 # Approach
 
