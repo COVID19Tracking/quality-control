@@ -354,9 +354,9 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
             if debug: logger.debug(f"  {c} ({val:,}) is below threshold -> ignore 'same' check")
             continue
 
-        phase = row.phase
-        checked_at = row.lastCheckEt.to_pydatetime()
-        is_check_field_set = checked_at > START_OF_TIME
+        #phase = row.phase
+        #checked_at = row.lastCheckEt.to_pydatetime()
+        #is_check_field_set = checked_at > START_OF_TIME
 
         if val == -1000:
             log.data_entry(row.state, f"{c} value cannot be converted to a number")

@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
+from datetime import timedelta
 
 import app.checks as checks
 from .qc_config import QCConfig
@@ -13,8 +14,8 @@ from .data.data_source import DataSource
 from .logging.result_log import ResultLog
 from .modeling.forecast_io import load_forecast_hd5
 from .modeling.forecast_plot import plot_to_file
-from .util.udatetime import *
-from .util import *
+from .util import udatetime
+#import .util import 
 
 def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     """
@@ -33,7 +34,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     if d.hour < 8:
         logger.error("[adjusting target date to previous day because hour < 8]")
         d = d - timedelta(days=1)
-    d = naivedatetime_as_eastern(datetime(d.year, d.month, d.day))
+    d = udatetime.naivedatetime_as_eastern(datetime(d.year, d.month, d.day))
 
     ds._target_date = d
 
@@ -121,7 +122,7 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     # setup run settings equivalent to publish date at 5PM
     s = str(publish_date)
     y,m,d = int(s[0:4]), int(s[4:6]), int(s[6:8])
-    publish_timestamp = naivedatetime_as_eastern(datetime(y, m, d, 12+5))
+    publish_timestamp = udatetime.naivedatetime_as_eastern(datetime(y, m, d, 12+5))
 
     ds._target_date = publish_timestamp
 
