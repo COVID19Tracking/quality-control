@@ -252,20 +252,36 @@ class DataSource:
         for c in df.columns[idx+1:eidx]:
             df[c] = self.safe_convert_to_int(df, c)
 
-        def convert_date(s: pd.Series, as_eastern: bool = True) -> pd.Series:
-            s = s.apply(udatetime.standardize_date)
-            s = pd.to_datetime(s, format="%m/%d/%Y %H:%M")
+        def standardize(d: str) -> str:
+            sd, changed = udatetime.standardize_date(d)
+            if changed:
+                return "1" + sd
+            else:
+                return "0" + sd
+
+        def convert_date(df: pd.DataFrame, name: str, as_eastern: bool):
+            s = df[name]
+            s_date = s.apply(standardize)
+            s_changed = s_date.str[0]
+            s_date = s_date.str[1:]
+
+            #print(pd.DataFrame({ "before": s, "after": s_date, "changed": s_changed}))
+
+            s_date = pd.to_datetime(s_date, format="%m/%d/%Y %H:%M")
             if as_eastern:
-                s = s.apply(udatetime.pandas_timestamp_as_eastern)
-            return s
+                s_date = s_date.apply(udatetime.pandas_timestamp_as_eastern)
+
+
+            df[name] = s_date
+            df[name + "_reformated"] = s_changed.values == "1"
 
         # remove current time from first row
         #current_time = df.loc[0, "lastCheckEt"].replace("CURRENT NAME: ", "")
         #df.loc[0, "lastCheckEt"] = ""
 
-        df["localTime"] = convert_date(df["localTime"], as_eastern=False)
-        df["lastUpdateEt"] = convert_date(df["lastUpdateEt"])
-        df["lastCheckEt"] = convert_date(df["lastCheckEt"])
+        convert_date(df, "localTime", as_eastern=False)
+        convert_date(df, "lastUpdateEt", as_eastern=True)
+        convert_date(df, "lastCheckEt", as_eastern=True)
 
         df = df[ df.state != ""]
         return df

@@ -9,13 +9,16 @@
 from datetime import datetime, timezone, timedelta
 import pytz
 import re
+from typing import Tuple
 import os
 import pandas as pd
 
 eastern_tz = pytz.timezone("US/Eastern")
 
-def standardize_date(s: str) -> str:
+def standardize_date(s: str) -> Tuple[str,bool]:
     " reformat string into mm/dd/yyyy hh:mm format"
+
+    changed = False
 
     # print(f"date in  >>{s}<<")
     if "-" in s:
@@ -29,6 +32,7 @@ def standardize_date(s: str) -> str:
             sdate = s
         parts = sdate.split("-")
         sdate = parts[1] + "/" + parts[2] + "/" + parts[0]
+        changed = True
     elif "/" in s:
         if s[3] == '/' and s[5] == '/' and len(s) == 16:
             pass
@@ -42,9 +46,15 @@ def standardize_date(s: str) -> str:
                 stime = "00:00"
                 sdate = s
             parts = sdate.split("/")
-            if len(parts[0]) == 1: parts[0] = "0" + parts[0]
-            if len(parts[1]) == 1: parts[1] = "0" + parts[1]
-            if len(parts) == 2: parts.append("2020")
+            if len(parts[0]) == 1: 
+                parts[0] = "0" + parts[0]
+            if len(parts[1]) == 1: 
+                changed = True
+                parts[1] = "0" + parts[1]
+            if len(parts) == 2: 
+                # allow missing year
+                # changed = True
+                parts.append("2020")
             sdate = parts[0] + "/" + parts[1] + "/" + parts[2]
     elif s == "":
         sdate = "01/01/2020"
@@ -55,6 +65,7 @@ def standardize_date(s: str) -> str:
     # convert to 24 hour clock
     has_pm = stime.endswith("PM")
     if has_pm or stime.endswith("AM"):
+        changed = True
         stime = stime[0:-2].strip()
         parts = stime.split(":")
         h = int(parts[0])
@@ -62,9 +73,9 @@ def standardize_date(s: str) -> str:
         if has_pm: h += 12
         stime = f"{h:02d}:{m:02d}"
 
-    s =  sdate + " " + stime
-    # print(f"date out >>{s}<<")
-    return s
+    s =  sdate.strip() + " " + stime.strip()
+    # print(f"date out >>{s}<< changed = {changed}")
+    return s, changed
 
 
 #
