@@ -1,4 +1,3 @@
-#!./qc-env/bin/python3
 """run quality checks against the COVID Tracker's human-generated datasets"""
 
 import sys
