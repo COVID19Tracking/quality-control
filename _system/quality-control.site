@@ -1,0 +1,9 @@
+server {
+    listen 80;
+    server_name exemplartech.com covid19-qc.exemplartech.com;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/home/josh/quality_control/flaskapp.sock;
+    }
+}

@@ -1,18 +1,17 @@
-Pyro4 service setup:
+Pyro4 service:
+    runs and caches the check results for a minute
 
-    sudo cp quality-control.service /etc/systemd/system/quality-control.service
-    sudo systemctl daemon-reload
-    sudo systemctl start quality-control
-    sudo systemctl status quality-control
+    > sudo update_pyro4.sh
+    > journalctl -u quality-control.service -b
 
-    journalctl -u quality-control.service -b
+flask service:
+    flask WCGI host
 
-flask service setup:
+    > sudo update_flask.sh
+    > journalctl -u quality-flaskapp.service -b
 
-    sudo cp quality-flaskapp.service /etc/systemd/system/quality-flaskapp.service
-    sudo systemctl daemon-reload
-    sudo systemctl start quality-flaskapp
-    sudo systemctl status quality-flaskapp
 
-    journalctl -u quality-flaskapp.service -b
+nginx service:
+    web server
 
+    > 
