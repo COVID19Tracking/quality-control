@@ -59,28 +59,19 @@ class CheckServer:
     @property
     def working_csv(self) -> str:
         w =  self.working
-        if w is None:
-            self.ds.log.to_csv()
-        else:
-            return w.to_csv()
+        return w.to_csv()
 
     @Pyro4.expose
     @property
     def working_json(self) -> str:
         w =  self.working
-        if w is None:
-            self.ds.log.to_json()
-        else:
-            return w.to_json()
+        return w.to_json()
 
     @Pyro4.expose
     @property
     def working_html(self) -> str:
         w =  self.working
-        if w is None:
-            self.ds.log.to_html()
-        else:
-            return w.to_html()
+        return w.to_html()
 
 # -----------------------------------
 # --- current data
