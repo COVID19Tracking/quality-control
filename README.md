@@ -43,9 +43,9 @@ You can either run this repo as a client or as a Flask app that sends requests t
 
 4. Open http://localhost:5000 and you should see the client running 
 
-![index_page](https://github.com//COVID19Tracking/quality-control/static/images/index_page.png "Landing Page")
-
-![results_page](https://github.com//COVID19Tracking/quality-control/static/images/results_page.png "Qualtiy Check Results")
+<img src="https://raw.githubusercontent.com/COVID19Tracking/quality-control/master/static/images/github/index.png" width="500">
+<br></br>
+<img src="https://raw.githubusercontent.com/COVID19Tracking/quality-control/master/static/images/github/results_page.png" width="500">
 
 # Approach
 
