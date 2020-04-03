@@ -6,7 +6,7 @@
 import Pyro4
 from loguru import logger
 
-from app.check_dataset import check_working
+from app.check_dataset import check_working, check_current, check_history
 
 from app.logging.result_log import ResultLog
 from app.data.data_source import DataSource
@@ -81,6 +81,78 @@ class CheckServer:
             self.ds.log.to_html()
         else:
             return w.to_html()
+
+# -----------------------------------
+# --- current data
+    @property
+    def current(self) -> ResultLog:
+        if is_out_of_date(self._current, 60):
+            self.ds = DataSource()
+            self._current = check_current(self.ds, self.config)
+        return self._current
+
+    @Pyro4.expose
+    @property
+    def current_csv(self) -> str:
+        c =  self.current
+        if c is None:
+            self.ds.log.to_csv()
+        else:
+            return c.to_csv()
+
+    @Pyro4.expose
+    @property
+    def current_json(self) -> str:
+        c =  self.current
+        if c is None:
+            self.ds.log.to_json()
+        else:
+            return c.to_json()
+
+    @Pyro4.expose
+    @property
+    def current_html(self) -> str:
+        c =  self.current
+        if c is None:
+            self.ds.log.to_html()
+        else:
+            return c.to_html()
+
+# -----------------------------------
+# --- history data
+    @property
+    def history(self) -> ResultLog:
+        if is_out_of_date(self._history, 60):
+            self.ds = DataSource()
+            self._history = check_history(self.ds)
+        return self._history
+
+    @Pyro4.expose
+    @property
+    def history_csv(self) -> str:
+        h =  self.history
+        if h is None:
+            self.ds.log.to_csv()
+        else:
+            return h.to_csv()
+
+    @Pyro4.expose
+    @property
+    def history_json(self) -> str:
+        h =  self.history
+        if h is None:
+            self.ds.log.to_json()
+        else:
+            return h.to_json()
+
+    @Pyro4.expose
+    @property
+    def history_html(self) -> str:
+        h =  self.history
+        if h is None:
+            self.ds.log.to_html()
+        else:
+            return h.to_html()
 
 # -----------------------------------
 

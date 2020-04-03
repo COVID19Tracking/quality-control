@@ -27,7 +27,7 @@ def working_html():
     try:
         service = get_proxy()
         result = service.working_html
-        return render_template("working_results.html", result=result)
+        return render_template("check_results.html", result=result)
     except Exception as ex:
         logger.error(f"Exception: {ex}")
         return str(ex), 500
@@ -43,4 +43,67 @@ def working_csv():
         logger.error(f"Exception: {ex}")
         return str(ex), 500
 
+@checks.route("/current.json", methods=["GET"])
+def current_json():
+    try:
+        service = get_proxy()
+        result = service.current_json
+        return Response(result, mimetype="text/json", status=200)
+    except Exception as ex:
+        logger.error(f"Exception: {ex}")
+        return str(ex), 500
 
+
+@checks.route("/current.html", methods=["GET"])
+def current_html():
+    try:
+        service = get_proxy()
+        result = service.current_html
+        return render_template("check_results.html", result=result)
+    except Exception as ex:
+        logger.error(f"Exception: {ex}")
+        return str(ex), 500
+
+
+@checks.route("/current.csv", methods=["GET"])
+def current_csv():
+    try:
+        service = get_proxy()
+        result = service.current_csv
+        return Response(result, mimetype="text/csv", status=200)
+    except Exception as ex:
+        logger.error(f"Exception: {ex}")
+        return str(ex), 500
+
+
+@checks.route("/history.json", methods=["GET"])
+def history_json():
+    try:
+        service = get_proxy()
+        result = service.history_json
+        return Response(result, mimetype="text/json", status=200)
+    except Exception as ex:
+        logger.error(f"Exception: {ex}")
+        return str(ex), 500
+
+
+@checks.route("/history.html", methods=["GET"])
+def history_html():
+    try:
+        service = get_proxy()
+        result = service.history_html
+        return render_template("check_results.html", result=result)
+    except Exception as ex:
+        logger.error(f"Exception: {ex}")
+        return str(ex), 500
+
+
+@checks.route("/history.csv", methods=["GET"])
+def history_csv():
+    try:
+        service = get_proxy()
+        result = service.history_csv
+        return Response(result, mimetype="text/csv", status=200)
+    except Exception as ex:
+        logger.error(f"Exception: {ex}")
+        return str(ex), 500

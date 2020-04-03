@@ -30,7 +30,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
 
     d, phase = checks.current_time_and_phase()
 
-    if d.hour < 8: 
+    if d.hour < 8:
         logger.error("[adjusting target date to previous day because hour < 8]")
         d = d - timedelta(days=1)
     d = naivedatetime_as_eastern(datetime(d.year, d.month, d.day))

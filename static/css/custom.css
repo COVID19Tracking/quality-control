@@ -6,3 +6,11 @@
 .container.working-results {
     margin: 50px 50px;
 }
+.container.index {
+    text-align: center;
+}
+.container.index .row {
+    display: inline-block;
+}
+
+
