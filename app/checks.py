@@ -287,14 +287,14 @@ IGNORE_THRESHOLDS = {
     "death": 20,
 }
 
-def last_change_date(val, vec_vals: pd.Series, vec_date) -> datetime:
+def find_last_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, datetime]:
     vals = vec_vals.values
     for i in range(len(vals)):
         if vals[i] != val: 
             sdate = str(vec_date.values[i])
             d = datetime(int(sdate[0:4]), int(sdate[4:6]), int(sdate[6:8]))
-            return udatetime.naivedatetime_as_eastern(d)
-    return None
+            return vals[i], udatetime.naivedatetime_as_eastern(d)
+    return 0, None
 
 def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = None) -> bool:
     """Check that new values more than previous values
@@ -310,7 +310,6 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
     df = df[df.date < row.targetDate]
 
     dict_row = row._asdict()
-
 
     # local time is an editable field that it supposed to be the last time the data changed.
     # last_updated is the same value but adjusted to eastern TZ 
@@ -331,24 +330,29 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
 
     d_last_change = udatetime.naivedatetime_as_eastern(datetime(2020,1,1))
 
-
     debug = config.enable_debug
 
-    is_same_messages = []
-    consolidate, n_days, n_days_prev = True, -1, 0
+    if debug: logger.debug(f"check {row.state}")
+
+    source_messages = []
+    has_issues, consolidate, n_days, n_days_prev = False, True, -1, 0
     for c in ["positive", "negative", "death"]:
-        if debug: logger.debug(f"check {row.state} {c}")
         val = dict_row[c]
         vec = df[c].values
+
         prev_val = vec[0] if vec.size > 0 else 0
+        prev_date = df["date"].iloc[0] if vec.size > 0 else 0
 
         if val < prev_val:
-            log.data_quality(row.state, f"{c} ({val:,}) decreased, prior value is {prev_val:,}")
-            consolidate = False
+            log.data_quality(row.state, f"{c} ({val:,}) decreased from {prev_val:,} as-of {prev_date}")
+            has_issues, consolidate = True, False
+            if debug: logger.debug(f"  {c} ({val:,}) decreased from {prev_val:,} as-of {prev_date}")
             continue
 
         # allow value to be the same if below a threshold
-        if val < IGNORE_THRESHOLDS[c]: continue
+        if val < IGNORE_THRESHOLDS[c]: 
+            if debug: logger.debug(f"  {c} ({val:,}) is below threshold -> ignore 'same' check")
+            continue
 
         phase = row.phase
         checked_at = row.lastCheckEt.to_pydatetime()
@@ -356,34 +360,42 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
 
         if val == -1000:
             log.data_entry(row.state, f"{c} value cannot be converted to a number")
-            consolidate = False
+            has_issues, consolidate = True, False
+            if debug: logger.debug(f"  {c} was not a number in source data")
             continue
 
         if val == prev_val:
-            d_changed = last_change_date(val, df[c], df["date"])
+            changed_val, changed_date = find_last_change(val, df[c], df["date"])
 
-            n_days = (d_target - d_changed).total_seconds() // (60*60*24)  
+            n_days = (d_target - changed_date).total_seconds() // (60*60*24)  
             if n_days >= 0:
-                d_last_change = max(d_last_change, d_changed)
+                d_last_change = max(d_last_change, changed_date)
 
-                if prev_val >= 20 and (is_check_field_set or phase in ["publish", "update"]):
-                    is_same_messages.append(f"{c} ({val:,}) hasn't changed since {d_changed.month}/{d_changed.day} ({n_days} days)")
-                    if debug: logger.debug(f"{c} ({val:,}) hasn't changed since {d_changed.month}/{d_changed.day} ({n_days} days)")
-
+                source_messages.append(f"{c} ({val:,}) hasn't changed since {changed_date.month}/{changed_date.day} ({n_days} days)")
+                if debug: logger.debug(f"  {c} ({val:,}) hasn't changed since {changed_date.month}/{changed_date.day} ({n_days} days)")
+                
+                # check if we can still consolidate results
                 if n_days_prev == 0:
                     n_days_prev = n_days
-                elif n_days_prev != n_days:
-                    if debug: logger.debug(f"{c} ({val:,}) changed {n_days} days ago -> force individual lines ")
+                    if debug: logger.debug(f"  {c} ({val:,}) hasn't changed since {changed_date.month}/{changed_date.day} ({n_days} days)")
+                elif n_days_prev == n_days:
+                    if debug: logger.debug(f"  {c} ({val:,}) also hasn't changed since {changed_date.month}/{changed_date.day}")
+                else:
                     consolidate = False
+                    if debug: logger.debug(f"  {c} ({val:,}) hasn't changed since {changed_date.month}/{changed_date.day} ({n_days} days ago) -> force individual lines ")
             else:
                 d_last_change = max(d_last_change, df["date"].values[-1])
+                has_issues, consolidate = True, False
                 log.data_source(row.state, f"{c} ({val:,}) constant for all time")
-                if debug: logger.debug(f"{c} ({val:,}) constant -> force individual lines ")
-                consolidate = False
-            continue
+                if debug: logger.debug(f"  {c} ({val:,}) constant -> force individual lines ")
+        else:
+            consolidate = False
+            if debug: logger.debug(f"  {c} ({val:,}) changed from {prev_val:,} on {prev_date}")
 
-    if d_last_change.year == 2020 and d_last_change.month == 1 and d_last_change.day == 1: # update-to-date
-        return True
+
+    if len(source_messages) == 0:
+        if debug: logger.debug(f"  no source messages -> has_issues={has_issues}")
+        return has_issues
 
     # alert if local time appears to updated incorrectly
     if d_local != 0 and d_local != d_updated:
@@ -391,16 +403,19 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
         sd = sd[4:6] + "/" + sd[6:8]
         sd_local = f"{local_time.month}/{local_time.day} {local_time.hour:02}:{local_time.minute:02}"
         checker = row.checker
-        if checker == "": checker = "??"        
+        if checker == "": checker = "??"
         log.data_entry(row.state, f"checker {checker} set local time (column V) to {sd_local} but values haven't changed since {sd} ({n_days:.0f} days ago)")
+        #has_issues = True
+        if debug: logger.debug(f"  checker {checker} set local time (column V) to {sd_local} but values haven't changed since {sd} ({n_days:.0f} days ago)")
 
-    if not consolidate:
-        for m in is_same_messages: log.data_source(row.state, m)
-        return True
+    if consolidate:
+        log.data_source(row.state, f"positive/negative/deaths haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
+        if debug: logger.debug(f"  positive/negative/deaths haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
+    else:
+        for m in source_messages: log.data_source(row.state, m)
+        if debug: logger.debug(f"  {row.state}: record {len(source_messages)} source issue(s) to log")
+    return has_issues
 
-    # only show one message if all values are same and signal that we don't need to run downstream tests
-    log.data_source(row.state, f"positive/negative/deaths haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
-    return False
 
 
 
