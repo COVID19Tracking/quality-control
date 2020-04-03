@@ -100,6 +100,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
         cnt += 1
         logger.info(f"  plotted {cnt} states")
 
+    log.consolidate()
     return log
 
 
@@ -146,6 +147,7 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
             if not df_county_rollup.empty:
                 checks.counties_rollup_to_state(row, df_county_rollup, log)
 
+    log.consolidate()
     return log
 
 
@@ -163,5 +165,6 @@ def check_history(ds: DataSource) -> ResultLog:
         state_df = df.loc[df["state"] == state]
         checks.monotonically_increasing(state_df, log)
 
+    log.consolidate()
     return log
 

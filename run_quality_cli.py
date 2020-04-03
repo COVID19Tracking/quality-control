@@ -71,7 +71,7 @@ def main() -> None:
 
     config = read_config_file("quality-control")
     parser = load_args_parser(config)
-    args = parser.parse_args(sys.argv)
+    args = parser.parse_args(sys.argv[1:])
 
     if not args.check_working and not args.check_daily and not args.check_history:
         logger.info("  [default to all sources]")

@@ -122,7 +122,7 @@ def last_checked(row, log: ResultLog):
         if phase == "inactive":
             pass
         elif phase in ["publish", "update"]:
-            log.data_entry(row.state, f"last check ET (column AK) is blank")
+            log.data_entry(row.state, f"last check ET (column AK) is blank", message_id="check_is_blank")
         elif phase in ["prepare", "cleanup"]:
             pass
         return
@@ -269,14 +269,14 @@ def counties_rollup_to_state(row, counties: pd.DataFrame, log: ResultLog):
         df.sort_values(by="cases", inplace=True)
         mid = df.iloc[xindex]
         if not mid.c_ok:
-            print(f"  positive ({row.positive:,}) does not match county aggregate ({mid.c_min:,} to {mid.c_max:,})")
+            logger.warning(f"  {row.state}: positive ({row.positive:,}) does not match county aggregate ({mid.c_min:,} to {mid.c_max:,})")
             log.data_quality(row.state, f"positive ({row.positive:,}) does not match {mid.source} county aggregate ({mid.cases:,}, allow {mid.c_min:,} to {mid.c_max:,})")
 
     if row.death > 200:
         df.sort_values(by="deaths", inplace=True)
         mid = df.iloc[xindex]
         if not mid.d_ok:
-            print(f"  death ({row.death:,}) does not match county aggregate ({mid.d_min:,} to {mid.d_max:,})")
+            logger.warning(f"  {row.state}:   death ({row.death:,}) does not match county aggregate ({mid.d_min:,} to {mid.d_max:,})")
             log.data_quality(row.state, f"death ({row.death:,}) does not match {mid.source} county aggregate ({mid.deaths:,}, allow {mid.d_min:,} to {mid.d_max:,})")
 
 # ----------------------------------------------------------------
@@ -367,12 +367,11 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
         if val == prev_val:
             changed_val, changed_date = find_last_change(val, df[c], df["date"])
 
-            n_days = (d_target - changed_date).total_seconds() // (60*60*24)  
+            n_days = int((d_target - changed_date).total_seconds() // (60*60*24))
             if n_days >= 0:
                 d_last_change = max(d_last_change, changed_date)
 
                 source_messages.append(f"{c} ({val:,}) hasn't changed since {changed_date.month}/{changed_date.day} ({n_days} days)")
-                if debug: logger.debug(f"  {c} ({val:,}) hasn't changed since {changed_date.month}/{changed_date.day} ({n_days} days)")
                 
                 # check if we can still consolidate results
                 if n_days_prev == 0:

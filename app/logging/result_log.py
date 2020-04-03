@@ -2,6 +2,8 @@
 #
 # Each message is assigned a category
 #
+#   message_id is optional.  if set, the messages are consolidated into single line if than 10 of them.
+#
 from enum import Enum
 import json
 import io
@@ -25,17 +27,22 @@ class ResultMessage:
         'category',
         'location',
         'message',
-        'ms'
+        'ms',
+        'message_id'
     )
 
-    def __init__(self, category: ResultCategory, location: str, message: str, ms: int):
+    def __init__(self, category: ResultCategory, location: str, message: str, ms: int, message_id: str = ""):
         self.category = category
         self.location = location
         self.message = message
         self.ms = ms
+        self.message_id = message_id
 
     def to_dict(self) -> Dict:
-        return { "category": self.category.value, "location": self.location, "message": self.message, "ms": self.ms }
+        return { "category": self.category.value, "location": self.location, 
+            "message": self.message, "ms": self.ms,
+            "message_id": self.message_id
+        }
 
 class ResultLog():
 
@@ -52,14 +59,15 @@ class ResultLog():
     def by_category(self, category: ResultCategory) -> List[ResultMessage]:
         return [x for x in self._messages if x.category == category]
 
-    def add(self, category: ResultCategory, location: str, message: str) -> None:
+    def add(self, category: ResultCategory, location: str, message: str,
+            message_id: str = "") -> None:
         if message is None: raise Exception("Missing message")
 
         end = time.process_time_ns()
         delta_ms = int((end - self.start) * 1e-6)
         self.start = end
 
-        msg = ResultMessage(category, location, message, delta_ms)
+        msg = ResultMessage(category, location, message, delta_ms, message_id=message_id)
         self._messages.append(msg)
 
     #def error(self, location: str, message: str) -> None:
@@ -69,16 +77,41 @@ class ResultLog():
     #def info(self, location: str, message: str) -> None:
     #    self.add(ResultCategory.INFO, location, message)
 
-    def data_entry(self, location: str, message: str) -> None:
-        self.add(ResultCategory.DATA_ENTRY, location, message)
-    def data_quality(self, location: str, message: str) -> None:
-        self.add(ResultCategory.DATA_QUALITY, location, message)
-    def data_source(self, location: str, message: str) -> None:
-        self.add(ResultCategory.DATA_SOURCE, location, message)
-    def internal_error(self, location: str, message: str) -> None:
-        self.add(ResultCategory.INTERNAL_ERROR, location, message)
+    def data_entry(self, location: str, message: str, message_id: str = "") -> None:
+        self.add(ResultCategory.DATA_ENTRY, location, message, message_id=message_id)
+    def data_quality(self, location: str, message: str, message_id: str = "") -> None:
+        self.add(ResultCategory.DATA_QUALITY, location, message, message_id=message_id)
+    def data_source(self, location: str, message: str, message_id: str = "") -> None:
+        self.add(ResultCategory.DATA_SOURCE, location, message, message_id=message_id)
+    def internal_error(self, location: str, message: str, message_id: str = "") -> None:
+        self.add(ResultCategory.INTERNAL_ERROR, location, message, message_id=message_id)
 
     # -----
+
+    def consolidate(self):
+
+        # build a list by ids
+        ids = {}
+        for i in range(len(self._messages)):
+            x = self._messages[i]
+            if x.message_id == "": continue
+            items = ids.get(x.message_id)
+            if items == None:
+                ids[x.message_id] = items = []
+            items.append(i)
+        
+        # delete anything with 10+ repeats
+        to_delete = []
+        for k in ids:
+            items = ids[k]
+            if len(items) > 10:
+                idx = items[0]
+                self._messages[idx].message += f" and {len(items)-1} more"
+                for i in items[1:]: to_delete.append(i)
+
+        to_delete.sort(reverse=True)
+        for i in to_delete:
+            del self._messages[i]
 
     def print(self):
 
