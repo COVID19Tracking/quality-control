@@ -1,4 +1,4 @@
-service setup:
+Pyro4 service setup:
 
     sudo cp quality-control.service /etc/systemd/system/quality-control.service
     sudo systemctl daemon-reload
@@ -6,3 +6,13 @@ service setup:
     sudo systemctl status quality-control
 
     journalctl -u quality-control.service -b
+
+flask service setup:
+
+    sudo cp quality-flaskapp.service /etc/systemd/system/quality-flaskapp.service
+    sudo systemctl daemon-reload
+    sudo systemctl start quality-flaskapp
+    sudo systemctl status quality-flaskapp
+
+    journalctl -u quality-flaskapp.service -b
+

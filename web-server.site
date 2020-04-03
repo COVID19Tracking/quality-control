@@ -1,0 +1,24 @@
+# nginx configuration for both quality_control and urlwatch_proxies
+
+
+server {
+    listen 80;
+    server_name covid19-api.exemplartech.com 159.89.50.25;
+    server_name url-proxy.covidtracking.com 159.89.50.25;
+ 
+    location / {
+        include proxy_params;
+        uwsgi_pass unix:/home/josh/urlwatch_proxies/flaskapp.sock;
+    }
+}
+
+server {
+    listen 80;
+    server_name covid19-qc.exemplartech.com 159.89.50.25;
+    server_name qc.covidtracking.com 159.89.50.25;
+
+    location / {
+        include proxy_params;
+        uwsgi_pass unix:/home/josh/quality_control/flaskapp.sock;
+    }
+}
