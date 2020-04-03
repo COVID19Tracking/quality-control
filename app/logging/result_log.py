@@ -133,12 +133,11 @@ class ResultLog():
 
     def format_table(self, cat: ResultCategory) -> List[str]:
         caption = f"  <h2>{cat.value.upper()}</h2>"
-        xcls = cat.value.lower().replace(" ", "-")
         df = pd.DataFrame(columns=["Location", "Message"])
         for x in self.by_category(cat):
             df.loc[df.shape[0]] = [x.location, x.message]
 
-        return  [caption, df.to_html(justify='left', index=False)] # lines
+        return  [caption, df.to_html(justify='left', index=False, border=0)]
 
     def to_html(self, as_fragment=False) -> str:
         lines = []
