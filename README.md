@@ -3,16 +3,21 @@
 
 # QUALITY CONTROL
 
-Consistency Checks for Spreadsheet
+Slack channel: #data-entry-qa
+
+Consistency checks for [CovidTracking](covidtracking.com) data 
 
 ## Purpose
 
-This is a repo for automated checks to the spreadsheet.
+To verify internal and external consistency of reported COVID counts tracked by the team.
 
-It fetchs the current data and a few recent archives and checks
-that the numbers are internally consistent.
+This repo contains automated checks against the [working spreadsheet](https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528) and against the published [api](https://covidtracking.com/api).
 
 ## Running 
+
+You can either run this repo as a client or as a Flask app that sends requests to a Pyro4 RPC server.
+
+#### Client
 
 1. Install requirements 
 
@@ -20,17 +25,40 @@ that the numbers are internally consistent.
 
 2. Run existing checks
 
-        python run_quality_checks.py
+        python run_quality_cli.py [-w, --working] [-d, --daily] [-x, --history]
+
+#### Application
+
+1. Install requirements 
+
+        pip install -r requirements.txt
+
+2. Open a terminal and run
+
+        python flaskapp.py
+
+3. Open a separate terminal and run
+
+        python run_quality_service.py
+
+4. Open http://localhost:5000 and you should see the client running 
+
+![index_page](https://github.com//COVID19Tracking/quality-control/static/images/index_page.png "Landing Page")
+
+![results_page](https://github.com//COVID19Tracking/quality-control/static/images/results_page.png "Qualtiy Check Results")
 
 # Approach
 
-Each state is checked independently. First, we run through a list
-of general checks.  Then we run a second time with any state
-specific tests.  Each check pass consists of comparing the current
-day to the previous day.
+A user chooses to check either the [working dev Google sheet](https://docs.google.com/spreadsheets/d/1MvvbHfnjF67GnYUDJJiNYUmGco5KQ9PW0ZRnEP9ndlU/edit#gid=1777138528), [current api](https://covidtracking.com/api), or [history api](https://covidtracking.com/api). Each state's data (such as positives, deaths, negatives, totals,  pending tests, and others coming soon) are run independently against a series of checks. `./app/check_dataset.py` contains the list of applicable checks for each dataset and controls data and object passing to the `./app/checks.py` file, which implements the checking logic. 
+
+Quality check results are served via a [Pyro](https://pyro4.readthedocs.io/en/stable/) proxy that can send requests to the `./app/check_dataset` for checking execution. We then sit a Flask app on the front end so that users can interact wtih the proxy.
 
 # Status / Implementation Notes
 
-1. This is not currently in production -- so don't worry about breaking things.
-2. I am setting up the initial loop now. - Josh
+A list of current checks along with implemention assumptions / judgement calls is maintained in a spreadsheet in this repo ([`./resources/Quality\ Control\ Checks.xlsx`](https://github.com/COVID19Tracking/quality-control/resources))
+
+**Current status:**
+
+1. The team is working on deploying the app to a public facing node
+2. There is still work to be done adding checks to the service. See the #data-entry-qa channel to get up to speed and check the COVID19Tracking [issues page](https://github.com/COVID19Tracking/issues) for open issues.
 
