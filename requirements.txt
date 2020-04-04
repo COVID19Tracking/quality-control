@@ -22,3 +22,6 @@ Pyro4~=4.79
 # for auto-deploy
 # breaks in 3.8.1, I think...
 #gitpython
+
+# for production
+#gunicorn

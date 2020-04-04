@@ -6,7 +6,9 @@
 #     2. set FLASK_APP=flaskapp.py
 #     3. flask run
 #     4. browse http://127.0.0.1:5000/
-
+#
+# To run in production, use gunicorn and wsgi.  see example in _system.
+#
 import os
 from flask import Flask, render_template
 from loguru import logger
@@ -14,17 +16,9 @@ from datetime import timedelta
 from flask import Flask
 
 from flaskcheck import checks, service_load_dates
-from app.webhooks import webhook
 
-app = Flask(__name__)
-app.register_blueprint(checks)
-
-# for auto-update
-app.config['GITHUB_SECRET'] = os.environ.get('GITHUB_SECRET')
-app.config['REPO_PATH'] = os.environ.get('REPO_PATH')
-app.register_blueprint(webhook)
-
-@app.route("/", methods=["GET"])
+# register dynamically
+#@route("/", methods=["GET"])
 def index():
     site_at, service_at, server_now = service_load_dates()
 
@@ -47,5 +41,13 @@ def index():
         site_delta=site_delta, 
         service_delta=service_delta)
 
+def create_app() -> Flask:
+    app = Flask(__name__)
+    app.register_blueprint(checks)
+
+    app.add_url_rule("/", 'index', index, methods=["GET"])
+    return app
+
 if __name__ == "__main__":
+    app = create_app()
     app.run(host='127.0.0.1')
