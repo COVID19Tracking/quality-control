@@ -68,11 +68,12 @@ def missing_tests(log: ResultLog):
     log.internal("Missing", "recovered should be less than positives")
     
     log.internal("Missing", "hospitalized + previous day's total = hospitalizedCumulative")
-    log.internal("Missing", "hospitalizedCumulative should always increase")
     log.internal("Missing", "icu + previous day's total = icuCumulative")
-    log.internal("Missing", "icuCumulative should always increase")
     log.internal("Missing", "ventilator + previous day's total = ventilatorCumulative")
-    log.internal("Missing", "ventilatorCumulative should always increase")
+
+    #log.internal("Missing", "hospitalizedCumulative should always increase")
+    #log.internal("Missing", "icuCumulative should always increase")
+    #log.internal("Missing", "ventilatorCumulative should always increase")
 
 
 # ----------------------------------------------------------------
@@ -347,23 +348,42 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
 
     if debug: logger.debug(f"check {row.state}")
 
+    fieldList = ["positive", "negative", "death", "hospitalizedCumulative", "inIcuCumulative", "onVentilatorCumulative"]
+    displayList = ["positive", "negative", "death", "hospitalized", "icu", "ventilator"]
+
     source_messages = []
     has_issues, consolidate, n_days, n_days_prev = False, True, -1, 0
-    for c in ["positive", "negative", "death"]:
-        val = dict_row[c]
+    for c in fieldList:
+        val = dict_row.get(c)
+        if val is None:
+            log.internal(row.state, f"{c} missing column")
+            has_issues, consolidate = True, False
+            if debug: logger.debug(f"  {c} missing column")
+            continue
+        if not c in df.columns:
+            log.internal(row.state, f"{c} missing history column")
+            has_issues, consolidate = True, False
+            if debug: logger.debug(f"  {c} missing history column")
+            continue
+
         vec = df[c].values
 
         prev_val = vec[0] if vec.size > 0 else 0
         prev_date = df["date"].iloc[0] if vec.size > 0 else 0
 
+
         if val < prev_val:
-            log.data_quality(row.state, f"{c} ({val:,}) decreased from {prev_val:,} as-of {prev_date}")
+            sd = str(prev_date)[4:] if prev_date > 0 else "-"
+            sd = sd[0:2] + "/" + sd[2:4] 
+            log.data_quality(row.state, f"{c} ({val:,}) decreased from {prev_val:,} as-of {sd}")
             has_issues, consolidate = True, False
-            if debug: logger.debug(f"  {c} ({val:,}) decreased from {prev_val:,} as-of {prev_date}")
+            if debug: logger.debug(f"  {c} ({val:,}) decreased from {prev_val:,} as-of {sd}")
             continue
 
-        # allow value to be the same if below a threshold
-        if val < IGNORE_THRESHOLDS[c]: 
+        # allow value to be the same if below a threshold, default to 10
+        t = IGNORE_THRESHOLDS.get(c)
+        if t == None: t = 10
+        if val < t: 
             if debug: logger.debug(f"  {c} ({val:,}) is below threshold -> ignore 'same' check")
             continue
 
@@ -421,8 +441,9 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
         if debug: logger.debug(f"  checker {checker} set local time (column V) to {sd_local} but values haven't changed since {sd} ({n_days:.0f} days ago)")
 
     if consolidate:
-        log.data_source(row.state, f"positive/negative/deaths haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
-        if debug: logger.debug(f"  positive/negative/deaths haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
+        names = "/".join(displayList)
+        log.data_source(row.state, f"cumulative values ({names}) haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
+        if debug: logger.debug(f"  cumulative values ({names}) haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
     else:
         for m in source_messages: log.data_source(row.state, m)
         if debug: logger.debug(f"  {row.state}: record {len(source_messages)} source issue(s) to log")

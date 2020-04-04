@@ -204,9 +204,9 @@ class DataSource:
             'Currently Hospitalized':'hospitalized',
             'Cumulative Hospitalized':'hospitalizedCumulative',
             'Currently in ICU':'icu',
-            'Cumulative in ICU':'icuCumulative',
+            'Cumulative in ICU':'inIcuCumulative',
             'Currently on Ventilator':'ventilator',
-            'Cumulative on Ventilator':'ventilatorCumulative',
+            'Cumulative on Ventilator':'onVentilatorCumulative',
             'Recovered':'recovered',
             'Deaths':'death',
             'Total':'total',
@@ -300,7 +300,11 @@ class DataSource:
         df.fillna(0.0, inplace=True)
 
         # counts
-        for c in ["positive", "negative", "pending", "hospitalized", "death", "total", "totalTestResults"]:
+        for c in ["positive", "negative", "pending", "hospitalized", "death", "recovered", "total", "totalTestResults"]:
+            df[c] = df[c].astype(np.int)
+        for c in ["positiveIncrease", "negativeIncrease", "hospitalizedIncrease", "deathIncrease", "totalTestResultsIncrease"]:
+            df[c] = df[c].astype(np.int)
+        for c in ['hospitalizedCumulative', 'inIcuCumulative', 'onVentilatorCumulative']:
             df[c] = df[c].astype(np.int)
 
         # 0 or 1.  score = sum of others so it is 0-4
@@ -316,10 +320,13 @@ class DataSource:
         df.fillna(0.0, inplace=True)
 
         # counts
-        for c in ["positive", "negative", "pending", "hospitalized", "death", "total", "totalTestResults"]:
+        for c in ["positive", "negative", "pending", "hospitalized", "death", "recovered", "total", "totalTestResults"]:
             df[c] = df[c].astype(np.int)
         for c in ["positiveIncrease", "negativeIncrease", "hospitalizedIncrease", "deathIncrease", "totalTestResultsIncrease"]:
             df[c] = df[c].astype(np.int)
+        for c in ['hospitalizedCumulative', 'inIcuCumulative', 'onVentilatorCumulative']:
+            df[c] = df[c].astype(np.int)
+
 
         df["dateChecked"] = pd.to_datetime(df["dateChecked"])
         return df
