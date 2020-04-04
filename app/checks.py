@@ -515,7 +515,7 @@ def delta_vs_cumulative(row, df: pd.DataFrame, log: ResultLog, config: QCConfig 
         if val < 0:
             if val == -1000:
                 if cuml_val != prev_cuml_val:
-                    log.data_quality(row.state, f"{c} is blank but {c2} current = {cuml_val:,} and prev = {prev_cuml_val:,} on {sd}")
+                    log.data_entry(row.state, f"{c} is blank but {c2} current = {cuml_val:,} and prev = {prev_cuml_val:,} on {sd}")
                     continue
                 else:
                     if debug: logger.debug(f"    {row.state}: {c} is blank -> treat as zero ")
@@ -528,9 +528,9 @@ def delta_vs_cumulative(row, df: pd.DataFrame, log: ResultLog, config: QCConfig 
         if prev_cuml_val + val != cuml_val:
             if debug: logger.warning(f"    {row.state}: {prev_cuml_val} + {val} != {cuml_val}")
             if prev_cuml_val == cuml_val:
-                log.data_quality(row.state, f"{c2} {cuml_val:,} has not been updated")
+                log.data_entry(row.state, f"{c2} {cuml_val:,} has not been updated, {c} = {val:,} and prev = {prev_cuml_val:,} on {sd}")
             else:
-                log.data_quality(row.state, f"{c2} {cuml_val:,} != {c} {val:,} + {prev_cuml_val:,} on {sd}")
+                log.data_quality(row.state, f"{c2} {cuml_val:,} != {c} {val:,} + prev {prev_cuml_val:,} on {sd}")
         else:
             if debug: logger.debug(f"    {row.state}: {prev_cuml_val} + {val} == {cuml_val}")
 
