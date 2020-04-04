@@ -12,10 +12,10 @@ if __name__ == "__main__":
     app = create_app()
 
     # propogate logging
-    gunicorn_logger = logging.getLogger("gunicorn.error")
-    if gunicorn_logger != None:
-        app.logger.handlers = gunicorn_logger.handlers
-        app.logger.setLevel(gunicorn_logger.level)
+    #gunicorn_logger = logging.getLogger("gunicorn.error")
+    #if gunicorn_logger != None:
+    #    app.logger.handlers = gunicorn_logger.handlers
+    #    app.logger.setLevel(gunicorn_logger.level)
     
     # for auto-update
     app.config['GITHUB_SECRET'] = os.environ.get('GITHUB_SECRET')
