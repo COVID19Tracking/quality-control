@@ -3,7 +3,7 @@
 <body>
 <div class="container index">
     <div class="row">
-        <h3>COVID19 QC Checks v0.01</h3>
+        <h3>COVID19 QC Checks {{version}}</h3>
         <table>
             <tr>
                 <th>DataSet</th><th></th><th></th><th></th>
@@ -28,5 +28,25 @@
             </tr>
         </table>
     </div>
+    <br/>
+    <br/>
+    <form>
+        <div class="footer">
+            <span id="loaded_at"></span> |
+            <span>site started: {{ site_delta }} ago</span> |
+            <span>service started: {{ service_delta }} ago</span>
+            <script>
+                function dformat(sd) {
+                    const d = new Date(Date.parse(sd));
+                    sd = d.toLocaleString('en-US')
+                    sd = sd.replace(/:[0-9]{2} /, ' ')
+                    return sd
+                }
+                const server_at = dformat("{{ server_now }}"); 
+                document.getElementById("loaded_at").innerText = "loaded at: " + server_at;
+            </script> 
+        </div>
+    </form>
+
 </body>
 {% endblock %}

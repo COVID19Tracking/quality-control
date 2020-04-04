@@ -5,11 +5,27 @@
 import os
 from flask import Blueprint, request, jsonify, Response, render_template
 import json
+from typing import Tuple
+from datetime import datetime
 from loguru import logger
 
 from run_quality_service import get_proxy
+import app.util.udatetime as udatetime
 
 checks = Blueprint("checks", __name__, url_prefix='/checks')
+
+load_date = udatetime.now_as_eastern()
+
+def service_load_dates() -> Tuple[datetime, datetime, datetime]:
+    " returns flask app start time, Pyro4 service start time, and current time (all ET)"
+    try:
+        service = get_proxy()
+        service_date = datetime.fromisoformat(service.load_date)
+        return load_date, service_date, udatetime.now_as_eastern() 
+    except Exception as ex:
+        logger.exception(ex)
+        return load_date, None, udatetime.now_as_eastern()
+
 
 @checks.route("/working.json", methods=["GET"])
 def working_json():

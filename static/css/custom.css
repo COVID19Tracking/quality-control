@@ -1,3 +1,4 @@
+
 .dataframe {
     width: 100%;
 }
@@ -13,4 +14,31 @@
     display: inline-block;
 }
 
+
+.footer {
+    position: absolute;
+    width: 100%;
+    bottom: -50px;
+    font-size: 8pt;
+    color: gray;
+    border-top: 1px solid lightgray;
+    padding: 2px;
+}
+
+.footer span {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.footer button
+ {
+    top: 10px;
+    padding: 0;
+    text-align: center;
+    line-height: 20px;
+    margin: auto;
+    font-size: 6pt;
+    width: 100px;
+    height: 25px;
+}
 

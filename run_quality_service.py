@@ -5,6 +5,7 @@
 #
 import Pyro4
 from loguru import logger
+from datetime import datetime
 
 from app.check_dataset import check_working, check_current, check_history
 
@@ -14,6 +15,7 @@ from app.qc_config import QCConfig
 import app.util.util as util
 import app.util.udatetime as udatetime
 
+load_date = udatetime.now_as_eastern()
 
 def is_out_of_date(log: ResultLog, cache_seconds: int) -> bool:
     " check if result is out-of-date"
@@ -28,6 +30,11 @@ class CheckServer:
 
     def __init__(self):
         self.reset()
+
+    @Pyro4.expose
+    @property
+    def load_date(self) -> datetime:
+        return load_date
 
     @Pyro4.expose
     def reset(self):

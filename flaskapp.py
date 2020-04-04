@@ -10,15 +10,35 @@
 
 from flask import Flask, render_template
 from loguru import logger
+from datetime import timedelta
 
-from flaskcheck import checks
-
+from flaskcheck import checks, service_load_dates
+ 
 app = Flask(__name__)
 app.register_blueprint(checks)
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html")
+    site_at, service_at, server_now = service_load_dates()
+
+    def format_delta(td: timedelta) -> str:
+        s = int(td.total_seconds())
+        if s < 60: return f"{s} sec" + ("s" if s == 1 else "")
+        m = s // 60
+        if m < 60: return f"{m} mins" + ("s" if m == 1 else "")
+        h = m // 60
+        if h < 24: return f"{h} hours" + ("s" if h == 1 else "")
+        d = h // 24
+        return f"{d} days" + ("s" if d == 1 else "")
+
+    site_delta = format_delta(server_now - site_at)
+    service_delta = format_delta(server_now - service_at)
+
+    server_now = server_now.isoformat()
+    return render_template("index.html", 
+        server_now=server_now,
+        site_delta=site_delta, 
+        service_delta=service_delta)
 
 if __name__ == "__main__":
     app.run(host='127.0.0.1')
