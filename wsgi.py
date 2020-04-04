@@ -23,3 +23,4 @@ if __name__ == "__main__":
 
     logger.info("running from wsgi")
     app.run()
+
