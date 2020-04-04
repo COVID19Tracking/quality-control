@@ -27,7 +27,7 @@ from typing import Tuple
 from app.util import udatetime
 
 from .qc_config import QCConfig
-from .logging.result_log import ResultLog
+from .log.result_log import ResultLog
 from .modeling.forecast import Forecast
 from .modeling.forecast_plot import plot_to_file
 from .modeling.forecast_io import save_forecast_hd5, load_forecast_hd5

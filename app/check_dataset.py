@@ -11,7 +11,7 @@ from datetime import timedelta
 import app.checks as checks
 from .qc_config import QCConfig
 from .data.data_source import DataSource
-from .logging.result_log import ResultLog
+from .log.result_log import ResultLog
 from .modeling.forecast_io import load_forecast_hd5
 from .modeling.forecast_plot import plot_to_file
 from .util import udatetime

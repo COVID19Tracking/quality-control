@@ -9,7 +9,7 @@ from datetime import datetime
 
 from app.check_dataset import check_working, check_current, check_history
 
-from app.logging.result_log import ResultLog
+from app.log.result_log import ResultLog
 from app.data.data_source import DataSource
 from app.qc_config import QCConfig
 import app.util.util as util

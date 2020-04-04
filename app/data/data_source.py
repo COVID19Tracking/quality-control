@@ -19,7 +19,7 @@ import re
 from app.util import state_abbrevs
 import app.util.udatetime as udatetime
 from app.data.worksheet_wrapper import WorksheetWrapper
-from app.logging.error_log import ErrorLog
+from app.log.error_log import ErrorLog
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 KEY_PATH = "credentials-scanner.json"
