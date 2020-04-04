@@ -7,7 +7,7 @@ User=josh
 Group=www-data
 WorkingDirectory=/home/josh/quality_control
 Environment="PATH=/home/josh/quality_control/qc-env/bin"
-ExecStart=/home/josh/quality_control/qc-env/bin/gunicorn --workers 3 --bind unix:flaskapp.sock -m 007 wsgi:app
+ExecStart=/home/josh/quality_control/qc-env/bin/gunicorn --workers 3 --bind unix:flaskapp.sock -m 007 wsgi:app --reload
 
 [Install]
 WantedBy=multi-user.target
