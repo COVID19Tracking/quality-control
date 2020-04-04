@@ -302,8 +302,6 @@ class DataSource:
         # counts
         for c in ["positive", "negative", "pending", "hospitalized", "death", "recovered", "total", "totalTestResults"]:
             df[c] = df[c].astype(np.int)
-        for c in ["positiveIncrease", "negativeIncrease", "hospitalizedIncrease", "deathIncrease", "totalTestResultsIncrease"]:
-            df[c] = df[c].astype(np.int)
         for c in ['hospitalizedCumulative', 'inIcuCumulative', 'onVentilatorCumulative']:
             df[c] = df[c].astype(np.int)
 

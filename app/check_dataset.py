@@ -118,7 +118,7 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     df = ds.current
     if df is None: return None
 
-    publish_date = 20200402
+    publish_date = 20200403
     logger.warning(f" ** current-date is hard-coded to {publish_date}")
     logger.warning(f" ** because the API does not tell us the date the results were published")
 
