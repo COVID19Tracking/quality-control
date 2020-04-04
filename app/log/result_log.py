@@ -19,7 +19,7 @@ class ResultCategory(Enum):
     DATA_QUALITY = "data quality"
     DATA_SOURCE = "data source"
     DATA_ENTRY = "data entry"
-    INTERNAL_ERROR = "internal error"
+    INTERNAL = "internal"
 
 class ResultMessage:
 
@@ -83,8 +83,8 @@ class ResultLog():
         self.add(ResultCategory.DATA_QUALITY, location, message, message_id=message_id)
     def data_source(self, location: str, message: str, message_id: str = "") -> None:
         self.add(ResultCategory.DATA_SOURCE, location, message, message_id=message_id)
-    def internal_error(self, location: str, message: str, message_id: str = "") -> None:
-        self.add(ResultCategory.INTERNAL_ERROR, location, message, message_id=message_id)
+    def internal(self, location: str, message: str, message_id: str = "") -> None:
+        self.add(ResultCategory.INTERNAL, location, message, message_id=message_id)
 
     # -----
 

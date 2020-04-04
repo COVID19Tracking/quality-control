@@ -207,8 +207,8 @@ class DataSource:
             'Cumulative in ICU':'icuCumulative',
             'Currently on Ventilator':'ventilator',
             'Cumulative on Ventilator':'ventilatorCumulative',
-            'Recovered':'recovered', # api misreads from sheet
-            'Deaths':'death', # api misreads from sheet
+            'Recovered':'recovered',
+            'Deaths':'death',
             'Total':'total',
             'Last Update (ET)': 'lastUpdateEt',
             'Last Check (ET)': 'lastCheckEt',

@@ -75,13 +75,16 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
 
         except Exception as ex:
             logger.exception(ex)
-            log.internal_error(row.state, f"{ex}")
+            log.internal(row.state, f"{ex}")
 
         if cnt != 0 and cnt % 10 == 0:
             logger.info(f"  processed {cnt} states")
         cnt += 1
 
     logger.info(f"  processed {cnt} states")
+
+    checks.missing_tests(log)
+
 
     # run loop at end, insted of during run
     if config.plot_models and config.save_results:
@@ -95,7 +98,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
                     plot_to_file(forecast, f"{config.images_dir}/working", checks.FIT_THRESHOLDS)
             except Exception as ex:
                 logger.exception(ex)
-                log.internal_error(row.state, f"{ex}")
+                log.internal(row.state, f"{ex}")
         if cnt != 0 and cnt % 10 == 0:
             logger.info(f"  plotted {cnt} states")
         cnt += 1

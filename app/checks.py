@@ -62,6 +62,19 @@ def current_time_and_phase() -> Tuple[datetime, str]:
     return target_time, phase
 
 
+def missing_tests(log: ResultLog):
+
+    log.internal("Missing", "pending is not testable")
+    log.internal("Missing", "recovered should be less than positives")
+    
+    log.internal("Missing", "hospitalized + previous day's total = hospitalizedCumulative")
+    log.internal("Missing", "hospitalizedCumulative should always increase")
+    log.internal("Missing", "icu + previous day's total = icuCumulative")
+    log.internal("Missing", "icuCumulative should always increase")
+    log.internal("Missing", "ventilator + previous day's total = ventilatorCumulative")
+    log.internal("Missing", "ventilatorCumulative should always increase")
+
+
 # ----------------------------------------------------------------
 
 def total(row, log: ResultLog):
@@ -495,15 +508,15 @@ def expected_positive_increase( row, history: pd.DataFrame,
     is_bad = False
     if 100 < expected_linear > 100_000:
         logger.error(f"{forecast.state}: actual = {actual_value:,}, linear model = {expected_linear:,} ")
-        log.internal_error(forecast.state, f"actual = {actual_value:,}, linear model = {expected_linear:,} ")
+        log.internal(forecast.state, f"actual = {actual_value:,}, linear model = {expected_linear:,} ")
         is_bad = True
     if 100 < expected_linear > 100_000:
         logger.error(f"{forecast.state}: actual = {actual_value:,}, exponental model = {expected_exp:,} ")
-        log.internal_error(forecast.state, f"actual = {actual_value:,}, exponental model = {expected_exp:,} ")
+        log.internal(forecast.state, f"actual = {actual_value:,}, exponental model = {expected_exp:,} ")
         is_bad = True
     if (not is_bad) and (expected_linear >= expected_exp):
         logger.error(f"{forecast.state}: actual = {actual_value:,}, linear model ({expected_linear:,}) > exponental model ({expected_exp:,})")
-        log.internal_error(forecast.state, f"actual = {actual_value:,}, linear model ({expected_linear:,}) > exponental model ({expected_exp:,})")
+        log.internal(forecast.state, f"actual = {actual_value:,}, linear model ({expected_linear:,}) > exponental model ({expected_exp:,})")
         is_bad = True
 
     if is_bad:
