@@ -148,20 +148,27 @@ class DataSource:
 
     def safe_convert_to_int(self, df: pd.DataFrame, col_name: str) -> pd.Series:
         " convert a series to int even if it contains bad data"
-        s = df[col_name].str.strip().replace("", "0").replace(re.compile(","), "")
+        s = df[col_name].str.strip().replace(re.compile(","), "")
 
-        flags = s.str.isnumeric()
-        df_errs = df[~flags]
+        is_blank = (s == "")
+        is_bad = (~s.str.isnumeric()) & (~is_blank)
+
+        df.loc[is_blank, col_name] = "-1000"
+        s = df[col_name]
+
+        df_errs = df[is_bad]
         if df_errs.shape[0] == 0: return s.astype(np.int)
 
         df_errs = df_errs[["state", col_name]]
         logger.error(f"invalid input values for {col_name}:\n{df_errs}")
         for _, e_row in df_errs.iterrows():
-            print(e_row)
             v = e_row[col_name]
             self.log.error(f"Invalid {col_name} value ({v}) for {e_row.state}")
 
-        s = s.where(flags, other="-1000")
+        logger.error("STOP")
+        exit(-1)
+
+        s = s.where(is_bad, other="-1001")
         return s.astype(np.int)
 
 
@@ -203,9 +210,9 @@ class DataSource:
             'Pending':'pending',
             'Currently Hospitalized':'hospitalized',
             'Cumulative Hospitalized':'hospitalizedCumulative',
-            'Currently in ICU':'icu',
+            'Currently in ICU':'inIcu',
             'Cumulative in ICU':'inIcuCumulative',
-            'Currently on Ventilator':'ventilator',
+            'Currently on Ventilator':'onVentilator',
             'Cumulative on Ventilator':'onVentilatorCumulative',
             'Recovered':'recovered',
             'Deaths':'death',

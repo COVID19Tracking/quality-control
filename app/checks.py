@@ -84,19 +84,34 @@ def total(row, log: ResultLog):
     n_pos, n_neg, n_pending, n_death, n_tot = \
         row.positive, row.negative, row.pending, row.death, row.total
 
+    def bad_value_msg(name: str, val: int) -> str:
+        if val == -1000: return f"{name} is blank"
+        if val == -1001: return f"{name} is invalid"
+        return f"{name} is negative ({val})"
+
+    if n_pending == -1000: # allow blanks
+        n_pending = 0
+
+    is_bad = False
+    if n_pos < 0:
+        is_bad = True
+        log.data_entry(row.state, bad_value_msg("positive", n_pos))
+    if n_neg < 0:
+        is_bad = True
+        log.data_entry(row.state, bad_value_msg("negative", n_neg))
+    if n_pending < 0:
+        is_bad = True
+        log.data_entry(row.state, bad_value_msg("pending", n_pending))
+    if n_death < 0:
+        is_bad = True
+        log.data_entry(row.state, bad_value_msg("death", n_death))
+    
     n_diff = n_tot - (n_pos + n_neg + n_pending)
-    if n_pos == -1000:
-        log.data_entry(row.state, f"Data Entry Error on positive")
-    elif n_neg == -1000:
-        log.data_entry(row.state, f"Data Entry Error on negative")
-    elif n_pending == -1000:
-        log.data_entry(row.state, f"Data Entry Error on pending")
-    elif n_death == -1000:
-        log.data_entry(row.state, f"Data Entry Error on death")
-    elif n_tot == -1000:
-        log.data_entry(row.state, f"Data Entry Error on total")
-    elif n_diff != 0:
-        log.data_entry(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
+    if not is_bad:
+        if n_tot < 0:
+            log.data_entry(row.state, bad_value_msg("total", n_tot))
+        elif n_diff != 0:
+            log.data_entry(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) + Pending ({n_pending}) != Total ({n_tot}), delta = {n_diff}")
 
 def total_tests(row, log: ResultLog):
     """Check that positive, and negative sum to the reported totalTest"""
@@ -372,7 +387,7 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
         prev_date = df["date"].iloc[0] if vec.size > 0 else 0
 
 
-        if val < prev_val:
+        if val < prev_val and (val > 0 and prev_val != 0): # negative values indicate blank/errors
             sd = str(prev_date)[4:] if prev_date > 0 else "-"
             sd = sd[0:2] + "/" + sd[2:4] 
             log.data_quality(row.state, f"{c} ({val:,}) decreased from {prev_val:,} as-of {sd}")
@@ -448,6 +463,76 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
         for m in source_messages: log.data_source(row.state, m)
         if debug: logger.debug(f"  {row.state}: record {len(source_messages)} source issue(s) to log")
     return has_issues
+
+def delta_vs_cumulative(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = None):
+    """Checks that cumulative = delta + previous day 
+    """
+
+    if not config: config = QCConfig()
+
+    df = df[df.date < row.targetDate]
+
+    dict_row = row._asdict()
+
+    fieldList = ["hospitalized", "inIcu", "onVentilator"]
+
+    debug = False
+
+    for c in fieldList:
+        c2 = c + "Cumulative"
+        val = dict_row.get(c)
+        if val is None:
+            logger.error(f"  {row.state}: {c} is missing")
+            log.internal(row.state, f"{c} missing column")
+            continue
+        cuml_val = dict_row.get(c2)
+        if cuml_val is None:
+            logger.error(f"  {row.state}: {c2} is missing")
+            log.internal(row.state, f"{c2} missing column")
+            continue
+        if not c2 in df.columns:
+            logger.error(f"  {row.state}: {c2} is missing from history")
+            log.internal(row.state, f"{c2} missing history column")
+            continue
+
+        vec = df[c2].values
+        prev_cuml_val = vec[0] if vec.size > 0 else 0
+
+        prev_date = df["date"].iloc[0] if vec.size > 0 else 0
+        sd = str(prev_date)[4:] if prev_date > 0 else "-"
+        sd = sd[0:2] + "/" + sd[2:4] 
+
+        if debug: logger.debug(f"  test {c}")
+
+        if cuml_val < 0:
+            if cuml_val == -1000:
+                if debug: logger.debug(f"    {row.state}: {c2} is blank -> treat as zero")
+                cuml_val = 0
+            else:
+                if debug: logger.debug(f"    {row.state}: {c2} is invalid -> skip")
+                continue
+
+        if val < 0:
+            if val == -1000:
+                if cuml_val != prev_cuml_val:
+                    log.data_quality(row.state, f"{c} is blank but {c2} current = {cuml_val:,} and prev = {prev_cuml_val:,} on {sd}")
+                    continue
+                else:
+                    if debug: logger.debug(f"    {row.state}: {c} is blank -> treat as zero ")
+                val = 0
+            else:
+                if debug: logger.debug(f"    {row.state}: {c} is invalid")
+                log.data_entry(row.state, f"{c} is invalid")
+                continue
+        
+        if prev_cuml_val + val != cuml_val:
+            if debug: logger.warning(f"    {row.state}: {prev_cuml_val} + {val} != {cuml_val}")
+            if prev_cuml_val == cuml_val:
+                log.data_quality(row.state, f"{c2} {cuml_val:,} has not been updated")
+            else:
+                log.data_quality(row.state, f"{c2} {cuml_val:,} != {c} {val:,} + {prev_cuml_val:,} on {sd}")
+        else:
+            if debug: logger.debug(f"    {row.state}: {prev_cuml_val} + {val} == {cuml_val}")
 
 
 
