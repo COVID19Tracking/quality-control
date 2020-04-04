@@ -3,7 +3,7 @@
 import hmac
 from loguru import logger
 from flask import request, Blueprint, jsonify, current_app 
-from git import Repo
+#from git import Repo
 
 g_last_commit = ""
 
@@ -19,6 +19,8 @@ def handle_github_hook():
     global g_last_commit
 
     try:      
+        logger.info(f"github payload = {request.json}")
+
         signature = request.headers.get('X-Hub-Signature') 
         sha, signature = signature.split('=')
 
@@ -26,9 +28,11 @@ def handle_github_hook():
 
         hashhex = hmac.new(secret, request.data, digestmod='sha1').hexdigest()
         if hmac.compare_digest(hashhex, signature): 
-            repo = Repo(current_app.config.get('REPO_PATH')) 
-            origin = repo.remotes.origin 
-            origin.pull('--rebase')
+            logger.error("git pull is disabled. -- doesn't work in 3.8.1")            
+            #repo = Repo(current_app.config.get('REPO_PATH')) 
+            #origin = repo.remotes.origin 
+            #origin.pull('--rebase')
+
 
         commit = request.json['after'][0:6]
         g_last_commit = commit

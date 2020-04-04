@@ -20,4 +20,5 @@ flask~=1.1.1
 Pyro4~=4.79
 
 # for auto-deploy
-gitpython
+# breaks in 3.8.1, I think...
+#gitpython
