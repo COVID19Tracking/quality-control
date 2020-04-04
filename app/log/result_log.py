@@ -165,11 +165,16 @@ class ResultLog():
         return dest.getvalue()
 
     def format_table(self, cat: ResultCategory) -> List[str]:
-        caption = f"  <h2>{cat.value.upper()}</h2>"
+        caption = f"  <h4>{cat.value.upper()}</h4>"
         df = pd.DataFrame(columns=["Location", "Message"])
+
+        cnt = 0
         for x in self.by_category(cat):
             df.loc[df.shape[0]] = [x.location, x.message]
+            cnt = cnt + 1
 
+        if cnt == 0: return []
+        
         return  [caption, df.to_html(justify='left', index=False, border=0)]
 
     def to_html(self, as_fragment=False) -> str:
