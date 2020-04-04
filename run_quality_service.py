@@ -83,6 +83,7 @@ class CheckServer:
     @Pyro4.expose
     @property
     def working_html(self) -> str:
+        w =  self.working
         if w is None:
             return self.ds.log.to_html()
         else:
