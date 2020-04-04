@@ -18,3 +18,6 @@ tables~=3.6.1
 # for flask
 flask~=1.1.1
 Pyro4~=4.79
+
+# for auto-deploy
+gitpython

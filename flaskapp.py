@@ -7,15 +7,22 @@
 #     3. flask run
 #     4. browse http://127.0.0.1:5000/
 
-
+import os
 from flask import Flask, render_template
 from loguru import logger
 from datetime import timedelta
+from flask import Flask
 
 from flaskcheck import checks, service_load_dates
- 
+from app.webhooks import webhook
+
 app = Flask(__name__)
 app.register_blueprint(checks)
+
+# for auto-update
+app.config['GITHUB_SECRET'] = os.environ.get('GITHUB_SECRET')
+app.config['REPO_PATH'] = os.environ.get('REPO_PATH')
+app.register_blueprint(webhook)
 
 @app.route("/", methods=["GET"])
 def index():
