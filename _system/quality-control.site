@@ -1,6 +1,7 @@
 server {
     listen 80;
     server_name exemplartech.com covid19-qc.exemplartech.com;
+    server_name covidtracker.com qc.covidtracker.com;
 
     location / {
         include proxy_params;
