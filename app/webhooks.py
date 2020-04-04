@@ -34,9 +34,9 @@ def handle_github_hook():
         g_last_commit = commit
         logger.info(f'Repository updated with commit {commit}')
 
-        return jsonify({"status": "okay", "message": ""}), 200
+        return jsonify({}), 200
     except Exception as ex:
         logger.exception(ex)
         logger.error("deploy failed")
         g_last_commit = "[deploy failed]"
-        return jsonify({"status": "failed", "message": f"{ex}"}), 500
+        return f"Deploy failed: {ex}", 500
