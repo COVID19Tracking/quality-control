@@ -33,7 +33,7 @@ def index():
         return f"{d} days" + ("s" if d == 1 else "")
 
     site_delta = format_delta(server_now - site_at)
-    service_delta = format_delta(server_now - service_at)
+    service_delta = format_delta(server_now - service_at) + " ago" if service_at != None else "[down]"
 
     server_now = server_now.isoformat()
     return render_template("index.html", 
