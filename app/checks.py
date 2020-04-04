@@ -67,9 +67,9 @@ def missing_tests(log: ResultLog):
     log.internal("Missing", "pending is not testable")
     log.internal("Missing", "recovered should be less than positives")
     
-    log.internal("Missing", "hospitalized + previous day's total = hospitalizedCumulative")
-    log.internal("Missing", "icu + previous day's total = icuCumulative")
-    log.internal("Missing", "ventilator + previous day's total = ventilatorCumulative")
+    #log.internal("Missing", "hospitalized + previous day's total = hospitalizedCumulative")
+    #log.internal("Missing", "icu + previous day's total = icuCumulative")
+    #log.internal("Missing", "ventilator + previous day's total = ventilatorCumulative")
 
     #log.internal("Missing", "hospitalizedCumulative should always increase")
     #log.internal("Missing", "icuCumulative should always increase")
