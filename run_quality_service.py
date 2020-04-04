@@ -66,19 +66,27 @@ class CheckServer:
     @property
     def working_csv(self) -> str:
         w =  self.working
-        return w.to_csv()
+        if w is None:
+            return self.ds.log.to_csv()
+        else:
+            return w.to_csv()
 
     @Pyro4.expose
     @property
     def working_json(self) -> str:
         w =  self.working
-        return w.to_json()
+        if w is None:
+            return self.ds.log.to_json()
+        else:
+            return w.to_json()
 
     @Pyro4.expose
     @property
     def working_html(self) -> str:
-        w =  self.working
-        return w.to_html()
+        if w is None:
+            return self.ds.log.to_html()
+        else:
+            return w.to_html()
 
 # -----------------------------------
 # --- current data
@@ -94,7 +102,7 @@ class CheckServer:
     def current_csv(self) -> str:
         c =  self.current
         if c is None:
-            self.ds.log.to_csv()
+            return self.ds.log.to_csv()
         else:
             return c.to_csv()
 
@@ -103,7 +111,7 @@ class CheckServer:
     def current_json(self) -> str:
         c =  self.current
         if c is None:
-            self.ds.log.to_json()
+            return self.ds.log.to_json()
         else:
             return c.to_json()
 
@@ -112,7 +120,7 @@ class CheckServer:
     def current_html(self) -> str:
         c =  self.current
         if c is None:
-            self.ds.log.to_html()
+            return self.ds.log.to_html()
         else:
             return c.to_html()
 
@@ -130,7 +138,7 @@ class CheckServer:
     def history_csv(self) -> str:
         h =  self.history
         if h is None:
-            self.ds.log.to_csv()
+            return self.ds.log.to_csv()
         else:
             return h.to_csv()
 
@@ -139,7 +147,7 @@ class CheckServer:
     def history_json(self) -> str:
         h =  self.history
         if h is None:
-            self.ds.log.to_json()
+            return self.ds.log.to_json()
         else:
             return h.to_json()
 
@@ -148,7 +156,7 @@ class CheckServer:
     def history_html(self) -> str:
         h =  self.history
         if h is None:
-            self.ds.log.to_html()
+            return self.ds.log.to_html()
         else:
             return h.to_html()
 
