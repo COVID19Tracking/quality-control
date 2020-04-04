@@ -165,7 +165,8 @@ class ResultLog():
         return dest.getvalue()
 
     def format_table(self, cat: ResultCategory) -> List[str]:
-        caption = f"  <h4>{cat.value.upper()}</h4>"
+        
+        caption = f"  <h5>{cat.value.upper()}</h5>"
         df = pd.DataFrame(columns=["Location", "Message"])
 
         cnt = 0
@@ -189,6 +190,9 @@ class ResultLog():
             lines.extend(self.format_table(cat))
             lines.append('    </div>')
         lines.append('    </div>')
+
+        sdate = udatetime.to_displayformat(self.loaded_at)
+        lines.append(f'    <div class="timestamp">run against source at {sdate}</div>')
 
         if not as_fragment:
             lines.append('  </body>')

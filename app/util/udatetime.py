@@ -157,7 +157,7 @@ def to_logformat(dt: datetime) -> str:
 def to_displayformat(dt: datetime) -> str:
     " format a date to display to user "
     if dt == None: return ""
-    require_utc(dt)
+    require_timezone(dt)
     return dt.astimezone(eastern_tz).strftime('%Y-%m-%d %H:%M:%S %Z')
 
 def from_json(s: str) -> datetime:
@@ -207,6 +207,18 @@ def format_mins(x : float) -> str:
     if x < 24.0:
         return f"{x:.1f} hours"
     return f"{x:.1f} days"
+
+def require_timezone(dt: datetime) -> datetime:
+    " require value to be an tz-aware date "
+    if dt == None: return None
+    if type(dt) != datetime:
+        if type(dt) == str:
+            if is_isoformated(dt):
+                raise Exception(f"value ({dt}) is a str containing an isoformated date")
+        raise Exception(f"type ({type(dt)}) is not datetime")
+    if dt.tzname() == None:
+        raise Exception(f"value ({dt}) is a naive datetime")
+    return dt
 
 def require_utc(dt: datetime) -> datetime:
     " require value to be an tz-UTC date "

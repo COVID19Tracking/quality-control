@@ -15,18 +15,26 @@ from app.qc_config import QCConfig
 import app.util.util as util
 import app.util.udatetime as udatetime
 
+CACHE_DIRECTION = 60
+
 load_date = udatetime.now_as_eastern()
 
 def is_out_of_date(log: ResultLog, cache_seconds: int) -> bool:
     " check if result is out-of-date"
-    if log == None: return True
+    if log == None:
+        logger.info("first run") 
+        return True
     dt = udatetime.now_as_eastern()
     delta = dt - log.loaded_at
-    return delta.total_seconds() > cache_seconds
-
+    t =  int(delta.total_seconds()) 
+    if t > cache_seconds:        
+        logger.info(f"last-run {t:,}s ago -> rerun") 
+        return True
+    else:
+        logger.info(f"last-run at {t:,}s ago -> skip") 
 
 class CheckServer:
-    "cache the check results for 60 seconds"
+    f"cache the check results for {CACHE_DIRECTION} seconds"
 
     def __init__(self):
         self.reset()
@@ -41,6 +49,8 @@ class CheckServer:
         self._working = None
         self._current = None
         self._history = None
+
+        logger.info("reset")
 
         config = util.read_config_file("quality-control")
         self.config = QCConfig(
@@ -57,7 +67,8 @@ class CheckServer:
     # --- working data
     @property
     def working(self) -> ResultLog:
-        if is_out_of_date(self._working, 60):
+        if is_out_of_date(self._working, CACHE_DIRECTION):
+            logger.info("rerun because working dataset is out-of-date")
             self.ds = DataSource()
             self._working = check_working(self.ds, self.config)
         return self._working
@@ -93,7 +104,7 @@ class CheckServer:
 # --- current data
     @property
     def current(self) -> ResultLog:
-        if is_out_of_date(self._current, 60):
+        if is_out_of_date(self._current, CACHE_DIRECTION):
             self.ds = DataSource()
             self._current = check_current(self.ds, self.config)
         return self._current
@@ -129,7 +140,7 @@ class CheckServer:
 # --- history data
     @property
     def history(self) -> ResultLog:
-        if is_out_of_date(self._history, 60):
+        if is_out_of_date(self._history, CACHE_DIRECTION):
             self.ds = DataSource()
             self._history = check_history(self.ds)
         return self._history
@@ -168,16 +179,26 @@ PORT = 8201
 VERSION = "1.0"
 KEY= "covid-qc"
 
+g_server: CheckServer = None
+
+# runs on server
 def start_server():
+
+    # singleton instance
+    global g_server
+    g_server = CheckServer()
+
     daemon = Pyro4.Daemon(host=HOST, port=PORT)
     daemon._pyroHmacKey = KEY
-    uri = daemon.register(CheckServer, objectId="checkServer")
+    uri = daemon.register(g_server, objectId="checkServer")
 
     logger.info(f"CheckServer Ready, objectId=checkServer, host={HOST}, port={PORT}, version={VERSION}")
     logger.info(f"  uri={uri}")
     daemon.requestLoop()
 
+# runs on client
 def get_proxy() -> CheckServer:
+
     url = f"PYRO:checkServer@{HOST}:{PORT}"
 
     logger.info(f"connect to {url}")

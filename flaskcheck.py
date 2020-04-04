@@ -34,7 +34,7 @@ def working_json():
         result = service.working_json
         return Response(result, mimetype="text/json", status=200)
     except Exception as ex:
-        logger.error(f"Exception: {ex}")
+        logger.exception(f"Exception: {ex}")
         return str(ex), 500
 
 
@@ -45,7 +45,7 @@ def working_html():
         result = service.working_html
         return render_template("check_results.html", result=result)
     except Exception as ex:
-        logger.error(f"Exception: {ex}")
+        logger.exception(f"Exception: {ex}")
         return str(ex), 500
 
 
@@ -56,7 +56,7 @@ def working_csv():
         result = service.working_csv
         return Response(result, mimetype="text/csv", status=200)
     except Exception as ex:
-        logger.error(f"Exception: {ex}")
+        logger.exception(f"Exception: {ex}")
         return str(ex), 500
 
 @checks.route("/current.json", methods=["GET"])
@@ -66,7 +66,7 @@ def current_json():
         result = service.current_json
         return Response(result, mimetype="text/json", status=200)
     except Exception as ex:
-        logger.error(f"Exception: {ex}")
+        logger.exception(f"Exception: {ex}")
         return str(ex), 500
 
 
@@ -77,7 +77,7 @@ def current_html():
         result = service.current_html
         return render_template("check_results.html", result=result)
     except Exception as ex:
-        logger.error(f"Exception: {ex}")
+        logger.exception(f"Exception: {ex}")
         return str(ex), 500
 
 
@@ -88,7 +88,7 @@ def current_csv():
         result = service.current_csv
         return Response(result, mimetype="text/csv", status=200)
     except Exception as ex:
-        logger.error(f"Exception: {ex}")
+        logger.exception(f"Exception: {ex}")
         return str(ex), 500
 
 
@@ -99,7 +99,7 @@ def history_json():
         result = service.history_json
         return Response(result, mimetype="text/json", status=200)
     except Exception as ex:
-        logger.error(f"Exception: {ex}")
+        logger.exception(f"Exception: {ex}")
         return str(ex), 500
 
 
@@ -110,7 +110,7 @@ def history_html():
         result = service.history_html
         return render_template("check_results.html", result=result)
     except Exception as ex:
-        logger.error(f"Exception: {ex}")
+        logger.exception(f"Exception: {ex}")
         return str(ex), 500
 
 
@@ -121,5 +121,5 @@ def history_csv():
         result = service.history_csv
         return Response(result, mimetype="text/csv", status=200)
     except Exception as ex:
-        logger.error(f"Exception: {ex}")
+        logger.exception(f"Exception: {ex}")
         return str(ex), 500
