@@ -515,7 +515,8 @@ def delta_vs_cumulative(row, df: pd.DataFrame, log: ResultLog, config: QCConfig 
         if val < 0:
             if val == -1000:
                 if cuml_val != prev_cuml_val:
-                    log.data_entry(row.state, f"{c} is blank but {c2} current = {cuml_val:,} and prev = {prev_cuml_val:,} on {sd}")
+                    # disabled for now at request of SJ Klein
+                    # log.data_entry(row.state, f"{c} is blank but {c2} current = {cuml_val:,} and prev = {prev_cuml_val:,} on {sd}")
                     continue
                 else:
                     if debug: logger.debug(f"    {row.state}: {c} is blank -> treat as zero ")
