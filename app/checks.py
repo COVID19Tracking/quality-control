@@ -67,9 +67,10 @@ def missing_tests(log: ResultLog):
     log.internal("Missing", "pending is not testable")
     log.internal("Missing", "recovered should be less than positives")
     
-    #log.internal("Missing", "hospitalized + previous day's total = hospitalizedCumulative")
-    #log.internal("Missing", "icu + previous day's total = icuCumulative")
-    #log.internal("Missing", "ventilator + previous day's total = ventilatorCumulative")
+    
+    log.internal("Apple/Oranges", "hospitalized and hospitalizedCumulative are different types of measurements")
+    log.internal("Apple/Oranges", "icu and icuCumulative are different types of measurements")
+    log.internal("Apple/Oranges", "ventilator and ventilatorCumulative  are different types of measurements")
 
     #log.internal("Missing", "hospitalizedCumulative should always increase")
     #log.internal("Missing", "icuCumulative should always increase")
@@ -464,78 +465,78 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
         if debug: logger.debug(f"  {row.state}: record {len(source_messages)} source issue(s) to log")
     return has_issues
 
-def delta_vs_cumulative(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = None):
-    """Checks that cumulative = delta + previous day 
-    """
+# disabled because the fields measure different things. apples-to-oranges
 
-    if not config: config = QCConfig()
-
-    df = df[df.date < row.targetDate]
-
-    dict_row = row._asdict()
-
-    fieldList = ["hospitalized", "inIcu", "onVentilator"]
-
-    debug = False
-
-    for c in fieldList:
-        c2 = c + "Cumulative"
-        val = dict_row.get(c)
-        if val is None:
-            logger.error(f"  {row.state}: {c} is missing")
-            log.internal(row.state, f"{c} missing column")
-            continue
-        cuml_val = dict_row.get(c2)
-        if cuml_val is None:
-            logger.error(f"  {row.state}: {c2} is missing")
-            log.internal(row.state, f"{c2} missing column")
-            continue
-        if not c2 in df.columns:
-            logger.error(f"  {row.state}: {c2} is missing from history")
-            log.internal(row.state, f"{c2} missing history column")
-            continue
-
-        vec = df[c2].values
-        prev_cuml_val = vec[0] if vec.size > 0 else 0
-
-        prev_date = df["date"].iloc[0] if vec.size > 0 else 0
-        sd = str(prev_date)[4:] if prev_date > 0 else "-"
-        sd = sd[0:2] + "/" + sd[2:4] 
-
-        if debug: logger.debug(f"  test {c}")
-
-        if cuml_val < 0:
-            if cuml_val == -1000:
-                if debug: logger.debug(f"    {row.state}: {c2} is blank -> treat as zero")
-                cuml_val = 0
-            else:
-                if debug: logger.debug(f"    {row.state}: {c2} is invalid -> skip")
-                continue
-
-        if val < 0:
-            if val == -1000:
-                if cuml_val != prev_cuml_val:
-                    # disabled for now at request of SJ Klein
-                    # log.data_entry(row.state, f"{c} is blank but {c2} current = {cuml_val:,} and prev = {prev_cuml_val:,} on {sd}")
-                    continue
-                else:
-                    if debug: logger.debug(f"    {row.state}: {c} is blank -> treat as zero ")
-                val = 0
-            else:
-                if debug: logger.debug(f"    {row.state}: {c} is invalid")
-                log.data_entry(row.state, f"{c} is invalid")
-                continue
-        
-        if prev_cuml_val + val != cuml_val:
-            if debug: logger.warning(f"    {row.state}: {prev_cuml_val} + {val} != {cuml_val}")
-            if prev_cuml_val == cuml_val:
-                log.data_entry(row.state, f"{c2} {cuml_val:,} has not been updated, {c} = {val:,} and prev = {prev_cuml_val:,} on {sd}")
-            else:
-                log.data_quality(row.state, f"{c2} {cuml_val:,} != {c} {val:,} + prev {prev_cuml_val:,} on {sd}")
-        else:
-            if debug: logger.debug(f"    {row.state}: {prev_cuml_val} + {val} == {cuml_val}")
-
-
+# def delta_vs_cumulative(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = None):
+#     """Checks that cumulative = delta + previous day 
+#     """
+#
+#     if not config: config = QCConfig()
+#
+#     df = df[df.date < row.targetDate]
+#
+#     dict_row = row._asdict()
+#
+#     fieldList = ["hospitalized", "inIcu", "onVentilator"]
+#
+#     debug = False
+#
+#     for c in fieldList:
+#         c2 = c + "Cumulative"
+#         val = dict_row.get(c)
+#         if val is None:
+#             logger.error(f"  {row.state}: {c} is missing")
+#             log.internal(row.state, f"{c} missing column")
+#             continue
+#         cuml_val = dict_row.get(c2)
+#         if cuml_val is None:
+#             logger.error(f"  {row.state}: {c2} is missing")
+#             log.internal(row.state, f"{c2} missing column")
+#             continue
+#         if not c2 in df.columns:
+#             logger.error(f"  {row.state}: {c2} is missing from history")
+#             log.internal(row.state, f"{c2} missing history column")
+#             continue
+#
+#         vec = df[c2].values
+#         prev_cuml_val = vec[0] if vec.size > 0 else 0
+#
+#         prev_date = df["date"].iloc[0] if vec.size > 0 else 0
+#         sd = str(prev_date)[4:] if prev_date > 0 else "-"
+#         sd = sd[0:2] + "/" + sd[2:4] 
+#
+#         if debug: logger.debug(f"  test {c}")
+#
+#         if cuml_val < 0:
+#             if cuml_val == -1000:
+#                 if debug: logger.debug(f"    {row.state}: {c2} is blank -> treat as zero")
+#                 cuml_val = 0
+#             else:
+#                 if debug: logger.debug(f"    {row.state}: {c2} is invalid -> skip")
+#                 continue
+#
+#         if val < 0:
+#             if val == -1000:
+#                 if cuml_val != prev_cuml_val:
+#                     # disabled for now at request of SJ Klein
+#                     # log.data_entry(row.state, f"{c} is blank but {c2} current = {cuml_val:,} and prev = {prev_cuml_val:,} on {sd}")
+#                     continue
+#                 else:
+#                     if debug: logger.debug(f"    {row.state}: {c} is blank -> treat as zero ")
+#                 val = 0
+#             else:
+#                 if debug: logger.debug(f"    {row.state}: {c} is invalid")
+#                 log.data_entry(row.state, f"{c} is invalid")
+#                 continue
+#        
+#         if prev_cuml_val + val != cuml_val:
+#             if debug: logger.warning(f"    {row.state}: {prev_cuml_val} + {val} != {cuml_val}")
+#             if prev_cuml_val == cuml_val:
+#                 log.data_entry(row.state, f"{c2} {cuml_val:,} has not been updated, {c} = {val:,} and prev = {prev_cuml_val:,} on {sd}")
+#             else:
+#                 log.data_quality(row.state, f"{c2} {cuml_val:,} != {c} {val:,} + prev {prev_cuml_val:,} on {sd}")
+#         else:
+#             if debug: logger.debug(f"    {row.state}: {prev_cuml_val} + {val} == {cuml_val}")
 
 
 # ----------------------------------------------------------------

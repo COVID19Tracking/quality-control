@@ -68,7 +68,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
             if has_changed:
                 checks.expected_positive_increase(row, df_history, log, "working", config)
 
-            checks.delta_vs_cumulative(row, df_history, log, config)
+            #checks.delta_vs_cumulative(row, df_history, log, config)
 
 
             if not ds.county_rollup is None:
