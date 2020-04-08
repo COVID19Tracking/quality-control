@@ -17,6 +17,10 @@ from .modeling.forecast_plot import plot_to_file
 from .util import udatetime
 #import .util import 
 
+def is_missing(df: pd.DataFrame) -> bool:
+    if df is None: return True
+    if df.shape[0] == 0: return True
+
 def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     """
     Check unpublished results in the working google sheet
@@ -39,7 +43,14 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     ds._target_date = d
 
     df = ds.working
-    if df is None: return None
+    if is_missing(df): 
+        log.internal("Source", "Working not available")
+        return None
+    if is_missing(ds.history):
+        log.internal("Source", "History not available")
+    if is_missing(ds.county_rollup):
+        log.internal("Source", "County Rollup not available")
+
 
     df["targetDate"] = d.year * 10000 + d.month * 100 + d.day
     df["targetDateEt"] = d
@@ -63,13 +74,13 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
             checks.less_recovered_than_positive(row, log)
             checks.pendings_rate(row, log)
 
-            df_history = ds.history[ds.history.state == row.state]
-            has_changed = checks.increasing_values(row, df_history, log, config)
-            if has_changed:
-                checks.expected_positive_increase(row, df_history, log, "working", config)
+            if not ds.history is None:
+                df_history = ds.history[ds.history.state == row.state]
+                has_changed = checks.increasing_values(row, df_history, log, config)
+                if has_changed:
+                    checks.expected_positive_increase(row, df_history, log, "working", config)
 
             #checks.delta_vs_cumulative(row, df_history, log, config)
-
 
             if not ds.county_rollup is None:
                 df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
@@ -110,7 +121,6 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     log.consolidate()
     return log
 
-
 def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     """
     Check the current published results
@@ -119,10 +129,21 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     log = ResultLog()
 
     df = ds.current
-    if df is None: return None
+    if is_missing(df): 
+        log.internal("Source", "Current not available")
+        return None
 
-    publish_date = 20200403
-    logger.warning(f" ** current-date is hard-coded to {publish_date}")
+    if is_missing(ds.history):
+        log.internal("Source", "History not available")
+    if is_missing(ds.county_rollup):
+        log.internal("Source", "County Rollup not available")
+
+    # expect publish at 5PM ET
+    dt = udatetime.now_as_eastern()
+    if dt.hour < 12+5:
+        dt = dt + timedelta(days=-1)
+    publish_date = dt.year * 10000 + dt.month * 100 + dt.day
+    logger.warning(f" ** computed publish_date from time = {publish_date} ")
     logger.warning(f" ** because the API does not tell us the date the results were published")
 
     # setup run settings equivalent to publish date at 5PM
@@ -144,10 +165,11 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
         checks.death_rate(row, log)
         checks.pendings_rate(row, log)
 
-        df_history = ds.history[ds.history.state == row.state]
-        has_changed = checks.increasing_values(row, df_history, log, config)
-        if has_changed:
-            checks.expected_positive_increase(row, df_history, log, "current", config)
+        if not ds.history is None:
+            df_history = ds.history[ds.history.state == row.state]
+            has_changed = checks.increasing_values(row, df_history, log, config)
+            if has_changed:
+                checks.expected_positive_increase(row, df_history, log, "current", config)
 
         if not ds.county_rollup is None:
             df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
@@ -166,7 +188,9 @@ def check_history(ds: DataSource) -> ResultLog:
     log = ResultLog()
 
     df = ds.history
-    if df is None: return None
+    if is_missing(df): 
+        log.internal("Source", "History not available")
+        return None
 
     for state in df["state"].drop_duplicates().values:
         state_df = df.loc[df["state"] == state]
