@@ -15,6 +15,8 @@ from urllib.request import urlopen
 import json
 import numpy as np
 import re
+import requests
+import io
 
 from app.util import state_abbrevs
 import app.util.udatetime as udatetime
@@ -23,6 +25,15 @@ from app.log.error_log import ErrorLog
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 KEY_PATH = "credentials-scanner.json"
+
+def get_remote_csv(xurl: str) -> pd.DataFrame:
+    r = requests.get(xurl, timeout=1)
+    if r.status_code >= 300: 
+        raise Exception(f"Could not get {xurl}, status={r.status_code}")
+    f = io.StringIO(r.text)
+    df = pd.read_csv(f)
+    return df
+
 
 
 class DataSource:
@@ -53,6 +64,7 @@ class DataSource:
             try:
                 self._working = self.load_working()
             except Exception as ex:
+                logger.exception(ex)                
                 self.failed["working"] = True
                 self.log.error(f"Could not load working", exception=ex)
         return self._working
@@ -227,6 +239,15 @@ class DataSource:
         dev_id = gs.get_sheet_id_by_name("dev")
         df = gs.read_as_frame(dev_id, "Worksheet 2!A2:AL60", header_rows=1)
 
+        # clean up names
+        cols = []
+        for n in df.columns:            
+            n1 = n.replace("\r", "").replace("\n", " ").replace("  ", " ")
+            n1 = n1.strip()
+            cols.append(n1)
+        df.columns = cols
+
+
         # check names and rename/suppress columns
         has_error = False
         names = []
@@ -235,13 +256,13 @@ class DataSource:
             n2 = column_map.get(n)
             if n2 == None:
                 has_error = True
-                logger.error(f"  Unexpected column: [{n}] in google sheet")
-            if n2 == '':
+                logger.error(f"  Unexpected column: [{n1}] in google sheet")
+            elif n2 == '':
                 to_delete.append(n)
             else:
                 names.append(n2)
         for n in column_map:
-            if not (n in df.columns):
+            if not (n1 in df.columns):
                 has_error = True
                 logger.error(f"  Missing column: [{n}] in google sheet")
 
@@ -296,7 +317,9 @@ class DataSource:
     def load_current(self) -> pd.DataFrame:
         """ load the current values from the API """
 
-        df = pd.read_csv("https://covidtracking.com/api/states.csv").fillna(0)
+        df = get_remote_csv("https://covidtracking.com/api/states.csv")
+
+        df = df.fillna(0)
         df["lastUpdateEt"] = pd.to_datetime(df["lastUpdateEt"].str.replace(" ", "/2020 "), format="%m/%d/%Y %H:%M") \
             .apply(udatetime.pandas_timestamp_as_eastern)
         df["checkTimeEt"] = pd.to_datetime(df["checkTimeEt"].str.replace(" ", "/2020 "), format="%m/%d/%Y %H:%M") \
@@ -317,11 +340,11 @@ class DataSource:
             df[c] = df[c].astype(np.int)
         return df
 
+
     def load_history(self) -> pd.DataFrame:
         """ load daily values over time from the API """
 
-        df = pd.read_csv("https://covidtracking.com/api/states/daily.csv")
-
+        df = get_remote_csv("https://covidtracking.com/api/states/daily.csv")
         df.fillna(0.0, inplace=True)
 
         # counts
@@ -338,7 +361,9 @@ class DataSource:
 
     def load_cds_counties(self) -> pd.DataFrame:
         """ load the CDS county dataset """
-        cds = pd.read_csv("https://coronadatascraper.com/data.csv")
+
+        cds = get_remote_csv("https://coronadatascraper.com/data.csv")
+
         cds = cds \
             .loc[(cds["country"] == "USA") & (~cds["county"].isnull())]
 
@@ -348,7 +373,9 @@ class DataSource:
 
     def load_csbs_counties(self) -> pd.DataFrame:
         """ load the CSBS county dataset """
-        response = urlopen("http://coronavirus-tracker-api.herokuapp.com/v2/locations?source=csbs")
+
+        xurl = "http://coronavirus-tracker-api.herokuapp.com/v2/locations?source=csbs"
+        response = urlopen(xurl, timeout=1)
         json_data = response.read().decode('utf-8', 'replace')
         d = json.loads(json_data)
         csbs = pd.json_normalize(d['locations'])
@@ -368,9 +395,11 @@ class DataSource:
         return csbs
 
     def load_nyt_counties(self) -> pd.DataFrame:
+
+        df = get_remote_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv")
+
         """ load the NYT county dataset """
-        nyt = pd.read_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv") \
-            .rename(columns={
+        nyt = df.rename(columns={
                 "date":"last_updated"
             })
         nyt = nyt.loc[nyt["last_updated"] == nyt["last_updated"].max()]
