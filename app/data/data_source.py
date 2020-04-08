@@ -16,6 +16,7 @@ import json
 import numpy as np
 import re
 import requests
+import socket
 import io
 
 from app.util import state_abbrevs
@@ -63,6 +64,9 @@ class DataSource:
             if self.failed.get("working"): return None
             try:
                 self._working = self.load_working()
+            except socket.timeout:
+                self.failed["working"] = True
+                self.log.error(f"Could not fetch working")
             except Exception as ex:
                 logger.exception(ex)                
                 self.failed["working"] = True
@@ -76,6 +80,9 @@ class DataSource:
             if self.failed.get("history"): return None
             try:
                 self._history = self.load_history()
+            except socket.timeout:
+                self.failed["history"] = True
+                self.log.error(f"Could not fetch history")
             except Exception as ex:
                 self.failed["history"] = True
                 self.log.error(f"Could not load history", exception=ex)
@@ -88,6 +95,9 @@ class DataSource:
             if self.failed.get("current"): return None
             try:
                 self._current = self.load_current()
+            except socket.timeout:
+                self.failed["current"] = True
+                self.log.error(f"Could not fetch current")
             except Exception as ex:
                 self.failed["current"] = True
                 self.log.error("Could not load current", exception=ex)
@@ -100,6 +110,9 @@ class DataSource:
             if self.failed.get("CDS"): return None
             try:
                 self._cds_counties = self.load_cds_counties()
+            except socket.timeout:
+                self.failed["CDS"] = True
+                self.log.warning(f"Could not fetch CDS counties")
             except Exception as ex:
                 self.failed["CDS"] = True
                 self.log.warning("Could not load CDS counties", exception=ex)
@@ -112,6 +125,9 @@ class DataSource:
             if self.failed.get("CSBS"): return None
             try:
                 self._csbs_counties = self.load_csbs_counties()
+            except socket.timeout:
+                self.failed["CSBS"] = True
+                self.log.warning(f"Could not fetch CSBS counties")
             except Exception as ex:
                 self.failed["CSBS"] = True
                 self.log.warning(f"Could not load CSBS counties", exception=ex)
@@ -124,6 +140,9 @@ class DataSource:
             if self.failed.get("NYT"): return None
             try:
                 self._nyt_counties = self.load_nyt_counties()
+            except socket.timeout:
+                self.failed["NYT"] = True
+                self.log.warning(f"Could not fetch NYT counties")
             except Exception as ex:
                 self.failed["NYT"] = True
                 self.log.warning(f"Could not load NYT counties", exception=ex)

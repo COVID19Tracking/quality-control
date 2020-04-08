@@ -29,18 +29,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
 
     log = ResultLog()
 
-    # targetDate is the date that the dev sheet is currently working on.
-    # phase is what part of their process they are in.
-    # targetDateEt is the time that should be used on any 'staleness' checks
-
-    d, phase = checks.current_time_and_phase()
-
-    if d.hour < 8:
-        logger.error("[adjusting target date to previous day because hour < 8]")
-        d = d - timedelta(days=1)
-    d = udatetime.naivedatetime_as_eastern(datetime(d.year, d.month, d.day))
-
-    ds._target_date = d
+    ds._target_date = config.working_date
 
     df = ds.working
     if is_missing(df): 
@@ -51,12 +40,13 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     if is_missing(ds.county_rollup):
         log.internal("Source", "County Rollup not available")
 
+    if not config.is_near_release:
+        log.internal("Skip", "Disable Operational checks b/c not near release")
 
-    df["targetDate"] = d.year * 10000 + d.month * 100 + d.day
-    df["targetDateEt"] = d
-    df["phase"] = phase
+    df["targetDate"] = config.working_date_int
+    df["targetDateEt"] = config.working_date
 
-    logger.info(f"Running with target date = {d.date()} and phase = {phase}")
+    logger.info(f"Running with working date = {config.working_date_int} and push number = {config.push_num}")
 
     # *** WHEN YOU CHANGE A CHECK THAT IMPACTS WORKING, MAKE SURE TO UPDATE THE EXCEL TRACKING DOCUMENT ***
 
@@ -66,9 +56,9 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
 
             checks.total(row, log)
             #checks.total_tests(row, log)
-            checks.last_update(row, log)
-            checks.last_checked(row, log)
-            checks.checkers_initials(row, log)
+            checks.last_update(row, log, config)
+            checks.last_checked(row, log, config)
+            checks.checkers_initials(row, log, config)
             checks.positives_rate(row, log)
             checks.death_rate(row, log)
             checks.less_recovered_than_positive(row, log)
@@ -138,25 +128,13 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     if is_missing(ds.county_rollup):
         log.internal("Source", "County Rollup not available")
 
-    # expect publish at 5PM ET
-    dt = udatetime.now_as_eastern()
-    if dt.hour < 12+5:
-        dt = dt + timedelta(days=-1)
-    publish_date = dt.year * 10000 + dt.month * 100 + dt.day
-    logger.warning(f" ** computed publish_date from time = {publish_date} ")
-    logger.warning(f" ** because the API does not tell us the date the results were published")
 
-    # setup run settings equivalent to publish date at 5PM
-    s = str(publish_date)
-    y,m,d = int(s[0:4]), int(s[4:6]), int(s[6:8])
-    publish_timestamp = udatetime.naivedatetime_as_eastern(datetime(y, m, d, 12+5))
+    ds._target_date = config.push_date
 
-    ds._target_date = publish_timestamp
-
-    df["targetDate"] = publish_date
-    df["targetDateEt"] = publish_timestamp
-    df["lastCheckEt"] = df["targetDateEt"]
-    df["phase"] = "publish"
+    df["targetDate"] = config.push_date_int
+    df["targetDateEt"] = config.push_date
+    df["lastCheckEt"] = config.push_date
+    df["push_num"] = config.push_num
 
     for row in df.itertuples():
         checks.total(row, log)
@@ -164,6 +142,10 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
         checks.positives_rate(row, log)
         checks.death_rate(row, log)
         checks.pendings_rate(row, log)
+
+        if not ds.history is None:
+            df_history = ds.history[ds.history.state == row.state]
+            checks.consistent_with_history(row, df_history, log)
 
         if not ds.history is None:
             df_history = ds.history[ds.history.state == row.state]

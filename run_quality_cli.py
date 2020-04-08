@@ -25,8 +25,8 @@ def load_args_parser(config) -> ArgumentParser:
         help='check the working results (only)')
 
     parser.add_argument(
-        '-d', '--daily', dest='check_daily', action='store_true', default=False,
-        help='check the daily results (only)')
+        '-d', '--current', dest='check_current', action='store_true', default=False,
+        help='check the current (only)')
 
     parser.add_argument(
         '-x', '--history', dest='check_history', action='store_true', default=False,
@@ -73,10 +73,10 @@ def main() -> None:
     parser = load_args_parser(config)
     args = parser.parse_args(sys.argv[1:])
 
-    if not args.check_working and not args.check_daily and not args.check_history:
+    if not args.check_working and not args.check_current and not args.check_history:
         logger.info("  [default to all sources]")
         args.check_working = True
-        args.check_daily = True
+        args.check_current = True
         args.check_history = True
 
     config = QCConfig(
@@ -105,7 +105,7 @@ def main() -> None:
         else:
             log.print()
 
-    if args.check_daily:
+    if args.check_current:
         logger.info("--| QUALITY CONTROL --- CURRENT |------")
         log = check_current(ds, config=config)
         if log is None:

@@ -5,11 +5,7 @@
 #
 #   If any issues are found, the check routine calls the log to report it.
 #   Each message has a category.  See ResultLog for a list of categories.
-#
-#   Each row has a 'phase' appended to it that can be used to control how
-#   errors are reported.  At certain times, fields like checked are expected
-#   to be cleared.  This should mainly be used with data entry checks.
-#
+##
 # To add a new check:
 #    1. create the routine here
 #    2. add it to the calling routines in check_dataset
@@ -33,34 +29,6 @@ from .modeling.forecast_plot import plot_to_file
 from .modeling.forecast_io import save_forecast_hd5, load_forecast_hd5
 
 START_OF_TIME = udatetime.naivedatetime_as_eastern(datetime(2020,1,2))
-
-
-def current_time_and_phase() -> Tuple[datetime, str]:
-    "get the current time (ET) and phase of the process given the hour"
-
-    target_time = udatetime.now_as_eastern()
-
-    hour = target_time.hour
-
-    # note -- these are all just guesses on a mental model of 1 update per day. Josh
-    phase = ""
-    if hour < 10:
-        phase = "inactive"
-    elif hour < 12 + 2:
-        phase = "prepare" # preparing for run
-    elif hour < 12 + 4:
-        phase ="active" # working on an update
-    elif hour < 12 + 6:
-        phase ="publish" # getting close to publishing
-    elif hour < 12 + 9:
-        phase ="cleanup" # cleanup from main run
-    elif hour < 12 + 10:
-        phase ="update" # updating numbers for the day
-    else:
-        phase = "inactive"
-
-    return target_time, phase
-
 
 def missing_tests(log: ResultLog):
 
@@ -127,7 +95,7 @@ def total_tests(row, log: ResultLog):
         log.data_entry(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) != Total Tests ({n_tests}), delta = {n_diff}")
 
 
-def last_update(row, log: ResultLog):
+def last_update(row, log: ResultLog, config: QCConfig):
     """Source has updated within a reasonable timeframe"""
 
     updated_at = row.lastUpdateEt.to_pydatetime()
@@ -135,34 +103,29 @@ def last_update(row, log: ResultLog):
     delta = target_time - updated_at
     days = delta.total_seconds() / (24 * 60.0 * 60)
 
-    if days >= 1.5:
-        log.data_source(row.state, f"source hasn't updated in {days:.1f} days")
+    if days >= 2.0:
+        log.data_source(row.state, f"source hasn't updated in {days:.0f} days")
     #elif hours > 18.0:
     #   log.data_source(row.state, f"Last Updated (col T) hasn't been updated in {hours:.0f}  hours")
 
-def last_checked(row, log: ResultLog):
+def last_checked(row, log: ResultLog, config: QCConfig):
     """Data was checked within a reasonable timeframe"""
+
+    if not config.is_near_release: return
 
     target_date = row.targetDateEt.to_pydatetime()
     updated_at = row.lastUpdateEt.to_pydatetime()
     checked_at = row.lastCheckEt.to_pydatetime()
 
-    if checked_at <= START_OF_TIME:
-        phase = row.phase
-        if phase == "inactive":
-            pass
-        elif phase in ["publish", "update"]:
-            log.data_entry(row.state, f"last check ET (column AK) is blank", message_id="check_is_blank")
-        elif phase in ["prepare", "cleanup"]:
-            pass
-        return
-
     delta = updated_at - checked_at
     hours = delta.total_seconds() / (60.0 * 60)
     if hours > 1.0:
-        s_updated = updated_at.strftime('%m/%d %H:%M')
-        s_checked = checked_at.strftime('%m/%d %H:%M')
-        log.data_entry(row.state, f"Last Check ET (column AJ) is {s_checked} which is less than Last Update ET (column AI)  {s_updated} by {hours:.0f} hours")
+        if hours > 2000:
+            log.data_entry(row.state, f"Last Check ET (column AJ) is blank")
+        else:
+            s_updated = updated_at.strftime('%m/%d %H:%M')
+            s_checked = checked_at.strftime('%m/%d %H:%M')        
+            log.data_entry(row.state, f"Last Check ET (column AJ) is {s_checked} which is less than Last Update ET (column AI)  {s_updated} by {hours:.0f} hours")
         return
 
     delta = target_date - checked_at
@@ -173,17 +136,12 @@ def last_checked(row, log: ResultLog):
         return
 
 
-def checkers_initials(row, log: ResultLog):
+def checkers_initials(row, log: ResultLog, config: QCConfig):
     """Confirm that checker initials are records"""
-
-    phase = row.phase
-    if phase == "inactive": return
 
     target_date = row.targetDateEt.to_pydatetime()
     checked_at = row.lastCheckEt.to_pydatetime()
     if checked_at <= START_OF_TIME: return
-
-    is_near_release = phase in ["publish", "update"]
 
     checker = row.checker.strip()
     doubleChecker = row.doubleChecker.strip()
@@ -194,11 +152,11 @@ def checkers_initials(row, log: ResultLog):
         if 0 < delta_hours < 5:
             s_checked = checked_at.strftime('%m/%d %H:%M')
             log.data_entry(row.state, f"missing checker initials (column AK) but checked date set recently (at {s_checked})")
-        elif is_near_release:
+        elif config.is_near_release:
             log.data_entry(row.state, f"missing checker initials (column AK)")
         return
     if doubleChecker == "":
-        if is_near_release:
+        if config.is_near_release:
             log.data_entry(row.state, f"missing double-checker initials (column AL)")
         return
 
@@ -326,6 +284,19 @@ def find_last_change(val, vec_vals: pd.Series, vec_date) -> Tuple[int, datetime]
             return vals[i], udatetime.naivedatetime_as_eastern(d)
     return 0, None
 
+def consistent_with_history(row, df: pd.DataFrame, log: ResultLog) -> bool:
+    """Check that row values match same date in history
+    """
+
+    df = df[df.date == row.targetDate]
+
+    #dict_row = row._asdict()
+
+    print(row)
+    print(df)
+    exit(-1)
+
+
 def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = None) -> bool:
     """Check that new values more than previous values
 
@@ -403,10 +374,6 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
             if debug: logger.debug(f"  {c} ({val:,}) is below threshold -> ignore 'same' check")
             continue
 
-        #phase = row.phase
-        #checked_at = row.lastCheckEt.to_pydatetime()
-        #is_check_field_set = checked_at > START_OF_TIME
-
         if val == -1000:
             log.data_entry(row.state, f"{c} value cannot be converted to a number")
             has_issues, consolidate = True, False
@@ -417,6 +384,11 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
             changed_val, changed_date = find_last_change(val, df[c], df["date"])
 
             n_days = int((d_target - changed_date).total_seconds() // (60*60*24))
+
+            # ignore 2-day stale if not near release
+            if not config.is_near_release and n_days < 3:
+                continue
+
             if n_days >= 0:
                 d_last_change = max(d_last_change, changed_date)
 
@@ -458,7 +430,8 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
 
     if consolidate:
         names = "/".join(displayList)
-        log.data_source(row.state, f"cumulative values ({names}) haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
+        if config.is_near_release or n_days >= 3.0:
+            log.data_source(row.state, f"cumulative values ({names}) haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
         if debug: logger.debug(f"  cumulative values ({names}) haven't changed since {d_last_change.month}/{d_last_change.day} ({n_days:.0f} days)")
     else:
         for m in source_messages: log.data_source(row.state, m)
