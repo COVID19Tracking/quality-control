@@ -11,9 +11,9 @@ class ErrorLog:
 
     def error(self, msg: str, exception: Exception = None):
         self.has_error = True
-        logger.error(msg)
         if exception != None:
             logger.exception(exception)
+        logger.error(msg)
         self.messages.append(("ERROR", msg, exception))
 
     def warning(self, msg: str, exception: Exception = None):
