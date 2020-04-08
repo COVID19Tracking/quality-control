@@ -95,7 +95,7 @@ def total_tests(row, log: ResultLog):
         log.data_entry(row.state, f"Formula broken -> Positive ({n_pos}) + Negative ({n_neg}) != Total Tests ({n_tests}), delta = {n_diff}")
 
 
-def last_update(row, log: ResultLog, config: QCConfig):
+def last_update(row, log: ResultLog):
     """Source has updated within a reasonable timeframe"""
 
     updated_at = row.lastUpdateEt.to_pydatetime()
@@ -292,9 +292,10 @@ def consistent_with_history(row, df: pd.DataFrame, log: ResultLog) -> bool:
 
     #dict_row = row._asdict()
 
-    print(row)
-    print(df)
-    exit(-1)
+    return
+    #print(row)
+    #print(df)
+    #exit(-1)
 
 
 def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = None) -> bool:

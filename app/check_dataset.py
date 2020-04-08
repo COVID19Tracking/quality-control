@@ -56,7 +56,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
 
             checks.total(row, log)
             #checks.total_tests(row, log)
-            checks.last_update(row, log, config)
+            checks.last_update(row, log)
             checks.last_checked(row, log, config)
             checks.checkers_initials(row, log, config)
             checks.positives_rate(row, log)
@@ -137,7 +137,7 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     df["push_num"] = config.push_num
 
     for row in df.itertuples():
-        checks.total(row, log)
+        checks.total(row, log)        
         checks.last_update(row, log)
         checks.positives_rate(row, log)
         checks.death_rate(row, log)
