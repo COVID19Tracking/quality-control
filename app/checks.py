@@ -98,6 +98,12 @@ def total_tests(row, log: ResultLog):
 def last_update(row, log: ResultLog):
     """Source has updated within a reasonable timeframe"""
 
+    xrow = row._asdict()
+    msg = xrow.get("lastUpdateEt_msg")
+    if msg:
+        log.data_entry(row.state, f"Last Update (DT) is {msg}")
+        return
+
     updated_at = row.lastUpdateEt.to_pydatetime()
     target_time = row.targetDateEt.to_pydatetime()
     delta = target_time - updated_at
@@ -112,6 +118,12 @@ def last_checked(row, log: ResultLog, config: QCConfig):
     """Data was checked within a reasonable timeframe"""
 
     if not config.is_near_release: return
+
+    xrow = row._asdict()
+    msg =  xrow.get("lastCheckEt_msg")
+    if msg:
+        log.data_entry(row.state, f"Last Checked (DT) is {msg}")
+        return
 
     target_date = row.targetDateEt.to_pydatetime()
     updated_at = row.lastUpdateEt.to_pydatetime()
@@ -420,8 +432,8 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
 
     # alert if local time appears to updated incorrectly
     if d_local != 0 and d_local != d_updated:
-        sd = str(d_last_change)
-        sd = sd[4:6] + "/" + sd[6:8]
+        sd = f"{d_last_change.month}/{d_last_change.day}"
+        #sd = sd[4:6] + "/" + sd[6:8]
         sd_local = f"{local_time.month}/{local_time.day} {local_time.hour:02}:{local_time.minute:02}"
         checker = row.checker
         if checker == "": checker = "??"

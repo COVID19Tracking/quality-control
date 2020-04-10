@@ -15,10 +15,22 @@ import pandas as pd
 
 eastern_tz = pytz.timezone("US/Eastern")
 
-def standardize_date(s: str) -> Tuple[str,bool]:
-    " reformat string into mm/dd/yyyy hh:mm format"
+def standardize_date(s: str) -> Tuple[str,int]:
+    """reformat string into mm/dd/yyyy hh:mm format
 
-    changed = False
+    error_num is 0,1,2,3:
+       0 = no error
+       1 = changed
+       2 = blank
+       3 = missing date
+       4 = missing time
+       5 = bad date
+       6 = bad time
+
+    return standardize-date (as a string), error_num
+    """
+
+    error_num = 0
 
     # print(f"date in  >>{s}<<")
     if "-" in s:
@@ -32,13 +44,13 @@ def standardize_date(s: str) -> Tuple[str,bool]:
             sdate = s
         parts = sdate.split("-")
         sdate = parts[1] + "/" + parts[2] + "/" + parts[0]
-        changed = True
+        error_num = 1 # changed
     elif "/" in s:
         if s[3] == '/' and s[5] == '/' and len(s) == 16:
             pass
         else:
             # m/d/y h:m format
-            idx = s.index(" ")
+            idx = s.find(" ")
             if idx > 0:
                 stime = s[idx:]
                 sdate = s[0:idx]
@@ -59,23 +71,35 @@ def standardize_date(s: str) -> Tuple[str,bool]:
     elif s == "":
         sdate = "01/01/2020"
         stime = "00:00"
+        error_num = 2 # blank
     else:
-        raise Exception(f"Not a date ({s})")
+        dt = now_as_eastern()
+        sdate = f"{dt.month:02}/{dt.day:02}/{dt.year}"        
+        stime = s
+        error_num = 3 # missing date
 
     # convert to 24 hour clock
     has_pm = stime.endswith("PM")
     if has_pm or stime.endswith("AM"):
-        changed = True
+        if error_num == 0: error_num = 1 # changed
         stime = stime[0:-2].strip()
         parts = stime.split(":")
         h = int(parts[0])
         m = int(parts[1])
         if has_pm: h += 12
+        if not (0 < h < 24):
+            h = 23
+            error_num = 6 # bad time
+        if not (0 < m < 60):
+            m = 0
+            error_num = 6 # bad time
         stime = f"{h:02d}:{m:02d}"
+    elif len(stime) == 0:
+        error_num = 4 # missing time
 
     s =  sdate.strip() + " " + stime.strip()
     # print(f"date out >>{s}<< changed = {changed}")
-    return s, changed
+    return s, error_num
 
 
 #

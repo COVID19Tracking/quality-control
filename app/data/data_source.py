@@ -196,9 +196,6 @@ class DataSource:
             v = e_row[col_name]
             self.log.error(f"Invalid {col_name} value ({v}) for {e_row.state}")
 
-        logger.error("STOP")
-        exit(-1)
-
         s = s.where(is_bad, other="-1001")
         return s.astype(np.int)
 
@@ -300,16 +297,17 @@ class DataSource:
             df[c] = self.safe_convert_to_int(df, c)
 
         def standardize(d: str) -> str:
-            sd, changed = udatetime.standardize_date(d)
-            if changed:
-                return "1" + sd
-            else:
-                return "0" + sd
+            sd, err_num = udatetime.standardize_date(d)
+            return str(err_num) + sd
 
         def convert_date(df: pd.DataFrame, name: str, as_eastern: bool):
             s = df[name]
             s_date = s.apply(standardize)
-            s_changed = s_date.str[0]
+
+            s_idx = s_date.str[0].astype(np.int)
+            names = ["", "changed", "blank", "missing date", "missing time", "bad date", "bad time"]
+            s_msg = s_idx.map(lambda x: names[x])
+
             s_date = s_date.str[1:]
 
             #print(pd.DataFrame({ "before": s, "after": s_date, "changed": s_changed}))
@@ -318,9 +316,8 @@ class DataSource:
             if as_eastern:
                 s_date = s_date.apply(udatetime.pandas_timestamp_as_eastern)
 
-
             df[name] = s_date
-            df[name + "_reformated"] = s_changed.values == "1"
+            df[name + "_msg"] = s_msg
 
         # remove current time from first row
         #current_time = df.loc[0, "lastCheckEt"].replace("CURRENT NAME: ", "")
