@@ -52,9 +52,10 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     current_time_et = udatetime.now_as_eastern()
     sheet_current_time = udatetime.parse_string_as_eastern(ds.current_time)
     delta = current_time_et - sheet_current_time
-    if delta.total_seconds() > 2 * 60:
-        log.internal("Info", f"Server has Current Time = {current_time_et}")
-        log.internal("ERROR", "Sheet data is more than two minutes old")
+    mins = delta.total_seconds() / 60.0;
+    if mins > 15.0:
+        log.internal("Info", f"Current Times: Server = {current_time_et}, Sheet = {sheet_current_time}")
+        log.internal("ERROR", f"Sheet data is {mins:.1f} minutes old")
     
 
     if not config.is_near_release:

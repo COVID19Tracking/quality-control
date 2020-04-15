@@ -147,8 +147,9 @@ def parse_string_as_eastern(s: str) -> datetime:
     
     s, err_num = standardize_date(s)
     if err_num != 0: raise Exception(f"Could not standardize date ({s})")
-    dt = datetime.strptime(s, '%m/%d/%Y %H:%M')
-    return dt.astimezone(eastern_tz)
+    s += "-04:00"
+    dt = datetime.strptime(s, '%m/%d/%Y %H:%M%z')
+    return dt
 
 
 def now_as_local() -> datetime:
