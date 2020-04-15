@@ -40,6 +40,22 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     if is_missing(ds.county_rollup):
         log.internal("Source", "County Rollup not available")
 
+    logger.info("Spreadsheet dates are:")
+    logger.info(f"  Last Publish: {ds.last_publish_time}")
+    logger.info(f"  Last Pushed: {ds.last_push_time}")
+    logger.info(f"  Current Time: {ds.current_time}")
+
+    log.internal("Info", f"Google Sheet was last published at {ds.last_publish_time}")
+    log.internal("Info", f"Google Sheet was last pushed at {ds.last_publish_time}")
+    log.internal("Info", f"Google Sheet has Current Time = {ds.current_time}")
+
+    current_time_et = udatetime.now_as_eastern()
+    sheet_current_time = udatetime.parse_string_as_eastern(ds.current_time)
+    delta = current_time_et - sheet_current_time
+    if delta.total_seconds() > 2 * 60:
+        log.internal("ERROR", "Sheet data is more than two minutes old")
+    
+
     if not config.is_near_release:
         log.internal("Skip", "Disable Operational checks b/c not near release")
 

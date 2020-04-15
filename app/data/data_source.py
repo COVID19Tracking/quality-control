@@ -46,6 +46,11 @@ class DataSource:
 
         self.failed = {}
 
+        # worksheet dates
+        self.last_publish_time = ""
+        self.last_push_time = ""
+        self.current_time = ""
+
         # internal datasources
         self._working: pd.DataFrame = None
         self._history: pd.DataFrame = None
@@ -199,6 +204,22 @@ class DataSource:
         s = s.where(is_bad, other="-1001")
         return s.astype(np.int)
 
+    def parse_dates(self, dates: List):
+        if len(dates) != 5:
+            raise Exception("First row layout (containing dates) changed")
+        last_publish_label, last_publish_value, last_push_label, \
+            last_push_value, current_time_field = dates
+
+        if last_publish_label != "Last Publish Time:":
+            raise Exception("Last Publish Time (cells V1:U1) moved")
+        if last_push_label != "Last Push Time:":
+            raise Exception("Last Push Time (cells Z1:AA1) moved")
+        if not current_time_field.startswith("CURRENT TIME: "):
+            raise Exception("CURRENT TIME (cell AG1) moved")
+
+        self.last_publish_time = last_publish_value
+        self.last_push_time = last_push_value
+        self.current_time = current_time_field[current_time_field.index(":")+1:].strip()
 
 
     def load_working(self) -> pd.DataFrame:
@@ -253,6 +274,10 @@ class DataSource:
 
         gs = WorksheetWrapper()
         dev_id = gs.get_sheet_id_by_name("dev")
+
+        dates = gs.read_as_list(dev_id, "Worksheet 2!V1:AJ1", ignore_blank_cells=True, single_row=True)
+        self.parse_dates(dates)
+
         df = gs.read_as_frame(dev_id, "Worksheet 2!A2:AL60", header_rows=1)
 
         # clean up names

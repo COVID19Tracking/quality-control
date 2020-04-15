@@ -27,10 +27,12 @@ def standardize_date(s: str) -> Tuple[str,int]:
        5 = bad date
        6 = bad time
 
-    return standardize-date (as a string), error_num
+    return standardized date (as a string), error_num
     """
 
     error_num = 0
+
+    s = s.strip()
 
     # print(f"date in  >>{s}<<")
     if "-" in s:
@@ -138,6 +140,15 @@ def pandas_timestamp_as_eastern(dt: pd.Timestamp) -> pd.Timestamp:
     if dt.tzname() != None:
         raise Exception(f"value ({dt}) is not a naive timestamp")
     return dt.tz_localize(eastern_tz)
+
+def parse_string_as_eastern(s: str) -> datetime:
+    """ convert a string into a tz-aware datetime """
+    if s == None: return None
+    
+    s, err_num = standardize_date(s)
+    if err_num != 0: raise Exception(f"Could not standardize date ({s})")
+    dt = datetime.strptime(s, '%m/%d/%Y %H:%M')
+    return dt.astimezone(eastern_tz)
 
 
 def now_as_local() -> datetime:

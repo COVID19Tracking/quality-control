@@ -74,6 +74,19 @@ class WorksheetWrapper():
         return values
 
 
+
+    def read_as_list(self, sheet_id: str, cell_range: str, ignore_blank_cells=False, single_row=False) -> List:
+        """Read results as a list of lists"""
+        values = self.read_values(sheet_id, cell_range)
+        if not ignore_blank_cells: return values
+        
+        result = []
+        for row in values:
+            result.append([x for x in row if x != ""])
+        
+        if single_row: result = result[0]
+        return result
+
     def read_as_frame(self, sheet_id: str, cell_range: str, header_rows = 1) -> pd.DataFrame:
         """Read results as a data frame, first row is headers"""
 
