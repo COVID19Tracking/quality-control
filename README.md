@@ -1,5 +1,6 @@
 [![COVID19Tracking](https://circleci.com/gh/COVID19Tracking/quality-control.svg?style=svg)](https://circleci.com/gh/COVID19Tracking/quality-control)
 
+App running at http://qc.covidtracking.com/
 
 # QUALITY CONTROL
 
