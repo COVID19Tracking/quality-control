@@ -8,6 +8,7 @@ Group=www-data
 WorkingDirectory=/home/josh/quality_control
 Environment="PATH=/home/josh/quality_control/qc-env/bin"
 ExecStart=/home/josh/quality_control/qc-env/bin/python3 /home/josh/quality_control/run_quality_service.py
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
