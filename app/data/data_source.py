@@ -275,7 +275,7 @@ class DataSource:
         gs = WorksheetWrapper()
         dev_id = gs.get_sheet_id_by_name("dev")
 
-        dates = gs.read_as_list(dev_id, "Worksheet 2!V1:AJ1", ignore_blank_cells=True, single_row=True)
+        dates = gs.read_as_list(dev_id, "Worksheet 2!W1:AJ1", ignore_blank_cells=True, single_row=True)
         self.parse_dates(dates)
 
         df = gs.read_as_frame(dev_id, "Worksheet 2!A2:AL60", header_rows=1)
