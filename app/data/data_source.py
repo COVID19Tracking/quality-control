@@ -307,8 +307,8 @@ class DataSource:
                 has_error = True
                 logger.error(f"  Missing column: [{n}] in google sheet")
 
-        if has_error:
-            raise Exception("Columns in google have changed")
+        #if has_error:
+        #    raise Exception("Columns in google have changed")
 
         for n in to_delete:
             del df[n]
