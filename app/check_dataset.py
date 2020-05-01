@@ -52,7 +52,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     current_time_et = udatetime.now_as_eastern()
     sheet_current_time = udatetime.parse_string_as_eastern(ds.current_time)
     delta = current_time_et - sheet_current_time
-    mins = delta.total_seconds() / 60.0;
+    mins = delta.total_seconds() / 60.0
     if mins > 15.0:
         log.internal("Info", f"Current Times: Server = {current_time_et}, Sheet = {sheet_current_time}")
         log.internal("ERROR", f"Sheet data is {mins:.1f} minutes old")
@@ -72,14 +72,14 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     for row in df.itertuples():
         try:
 
-            checks.total(row, log)
+            #checks.total(row, log)
             #checks.total_tests(row, log)
             checks.last_update(row, log)
             checks.last_checked(row, log, config)
             checks.checkers_initials(row, log, config)
             checks.positives_rate(row, log)
             checks.death_rate(row, log)
-            checks.less_recovered_than_positive(row, log)
+            #checks.less_recovered_than_positive(row, log)
             checks.pendings_rate(row, log)
 
             if not ds.history is None:

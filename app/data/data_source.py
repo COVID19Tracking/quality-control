@@ -184,25 +184,32 @@ class DataSource:
 
     def safe_convert_to_int(self, df: pd.DataFrame, col_name: str) -> pd.Series:
         " convert a series to int even if it contains bad data"
-        s = df[col_name].str.strip().replace(re.compile(","), "")
+        try:
+            s = df[col_name].str.strip().str.replace(",", "")
+            df[col_name] = s
 
-        is_blank = (s == "")
-        is_bad = (~s.str.isnumeric()) & (~is_blank)
+            is_blank = (s == "")
+            is_bad = (~s.str.isnumeric()) & (~is_blank)
 
-        df.loc[is_blank, col_name] = "-1000"
-        s = df[col_name]
+            df.loc[is_blank, col_name] = "-1000"
+            s = df[col_name]
 
-        df_errs = df[is_bad]
-        if df_errs.shape[0] == 0: return s.astype(np.int)
+            df_errs = s[is_bad]
+            if df_errs.shape[0] == 0: 
+                return s.astype(np.int)
 
-        df_errs = df_errs[["state", col_name]]
-        logger.error(f"invalid input values for {col_name}:\n{df_errs}")
-        for _, e_row in df_errs.iterrows():
-            v = e_row[col_name]
-            self.log.error(f"Invalid {col_name} value ({v}) for {e_row.state}")
+            df_errs = df[["state", col_name]][is_bad]
+            logger.error(f"invalid input values for {col_name}:\n{df_errs}")
+            for idx, e_row in df_errs.iterrows():
+                v = e_row[col_name]
+                v2 = s[idx]
+                self.log.error(f"Invalid {col_name} value ({v} -> {v2}) for {e_row.state}")
 
-        s = s.where(is_bad, other="-1001")
-        return s.astype(np.int)
+            s = s.where(is_bad, other="-1001")
+            return s.astype(np.int)
+        except Exception as ex:
+            logger.error(f"Cannot convert {col_name} to int: {ex}")
+            exit(-1)
 
     def parse_dates(self, dates: List):
         if len(dates) != 5:
@@ -250,76 +257,157 @@ class DataSource:
             'Flagged': '',
             'Time zone +/–': '',
             'Public': '',
-            '': '',
         #    'Private': '',
 
+            'col_18': '',
             'Local Time':'localTime',
-            'Positive':'positive',
-            'Negative':'negative',
+
+            # old
+            #'Positive':'positive',
+            #'Negative':'negative',
+            #'Deaths':'death',
+            #'Total':'total',
+
+            # new
+            'Total Antibody Tests (People)': 'antibody_people_total',
+            'Positive Antibody Tests (People)': 'antibody_people_pos',
+            'Negative Antibody Tests (People)': 'antibody_people_neg',
+            'Total Tests (Specimens)': 'specimens_total',
+            'Positive Tests (Specimens)': 'specimens_positive',
+            'Negative Tests (Specimens)': 'specimens_negative',
+            'Positive Cases (People - confirmed by testing)': 'positive',
+            'Positive Cases (People, confirmed + probable)': 'positive_probable',
+            'Negative (People or Cases)': 'negative',
             'Pending':'pending',
             'Currently Hospitalized':'hospitalized',
-            'Cumulative Hospitalized':'hospitalizedCumulative',
+            'Currently Hospitalized 1':'hospitalizedFlag',
+            'Cumulative Hospitalized':'hospitalizedCumulativeFlag',
+            #'Cumulative Hospitalized 1':'hospitalizedCumulativeFlag',
             'Currently in ICU':'inIcu',
+            'Currently in ICU 1':'inIcuIsReported',
             'Cumulative in ICU':'inIcuCumulative',
+            'Cumulative in ICU 1':'inIcuCumulativeFlag',
             'Currently on Ventilator':'onVentilator',
+            'Currently on Ventilator 1':'onVentilatorFlag',
             'Cumulative on Ventilator':'onVentilatorCumulative',
-            'Recovered':'recovered',
-            'Deaths':'death',
-            'Total':'total',
+            'Cumulative on Ventilator 1':'onVentilatorCumulativeFlag',
+            'Recovered':'recoveredFlag',
+
+            'Deaths (Confirmed and probable)': 'death_probable',
+            'Deaths (confirmed)': 'death',
+
             'Last Update (ET)': 'lastUpdateEt',
             'Last Check (ET)': 'lastCheckEt',
             'Checker':'checker',
-            'Doublechecker':'doubleChecker'
+            'Doublechecker':'doubleChecker',
+
+            'Notes': '',
+
+            # hidden
+            'Positive': '',
+            'Negative': '',
+            'Deaths': '',
+            'Doublecheck Flag': '',
+            'Reporting Negatives': '',
+            'Hospitalized – Currently': '',
+            'Hospitalized – Cumulative': '',
+            'In ICU – Currently': '',
+            'In ICU – Cumulative': '',
+            'On Ventilator – Currently': '',
+            'On Ventilator – Cumulative': '',
+            'pubDate': '',
+            'pushDate': '',
+            # end hidden
+
+            'stateGrade': 'grade',
+
+
         }
 
         gs = WorksheetWrapper()
         dev_id = gs.get_sheet_id_by_name("dev")
 
-        dates = gs.read_as_list(dev_id, "Worksheet 2!W1:AJ1", ignore_blank_cells=True, single_row=True)
+        dates = gs.read_as_list(dev_id, "Worksheet 2!W1:AN1", ignore_blank_cells=True, single_row=True)
         self.parse_dates(dates)
 
-        df = gs.read_as_frame(dev_id, "Worksheet 2!A2:AL60", header_rows=1)
+        df = gs.read_as_frame(dev_id, "Worksheet 2!A2:BR60", header_rows=1)
+
+        #for i, x in enumerate(df.columns):
+        #    logger.info(f"column {i} {x}: {df[x].values[0:5]}")
+
+        # check for duplicate output names
+        logger.info("check for duplicate output names")
+        has_dups = False
+        dups = {}
+        for x1 in column_map:
+            y = column_map[x1]
+            if y == "": continue
+            x2 = dups.get(y)
+            if x2 != None:
+                has_dups = True
+                logger.error(f"Duplicate output name {y} for {x1} and {x2}")
+            else:
+                dups[y] = x1
+        if has_dups: raise Exception("Duplicate output names")
 
         # clean up names
+        logger.info("clean up names")
         cols = []
-        for n in df.columns:            
+        dup_cnt = {}
+        for i, n in enumerate(df.columns):            
             n1 = n.replace("\r", "").replace("\n", " ").replace("  ", " ")
             n1 = n1.strip()
+            if n1 == "": n1 = f"col_{i}"
+            x = dup_cnt.get(n1)
+            if x is None:
+                dup_cnt[n1] = 0
+            else:                
+                dup_cnt[n1] = x = x + 1
+                n1 = f"{n1} {x}"
+
             cols.append(n1)
         df.columns = cols
 
 
-        # check names and rename/suppress columns
+        # copy mapped names to new frame
+        #   also for unexpected columns
+        logger.info("make new dataframe")
         has_error = False
-        names = []
-        to_delete = []
-        for n in df.columns.values:
+        df_new = pd.DataFrame()
+        for i, n in enumerate(df.columns):
             n2 = column_map.get(n)
+            #logger.info(f"{n} {type(n)} -> {n2} {type(n)}")
             if n2 == None:
                 has_error = True
-                logger.error(f"  Unexpected column: [{n1}] in google sheet")
-            elif n2 == '':
-                to_delete.append(n)
-            else:
-                names.append(n2)
+                logger.error(f"  Unexpected column {i}: [{n}] in google sheet")            
+            elif n2 != '':
+                if type(df[n]) == pd.Series: 
+                    df_new[n2] = df[n]
+                elif type(df[n]) == pd.DataFrame:                    
+                    logger.error(f"  Name [{n}] matches multiple columns")            
+    
         for n in column_map:
             if not (n1 in df.columns):
                 has_error = True
                 logger.error(f"  Missing column: [{n}] in google sheet")
 
-        #if has_error:
-        #    raise Exception("Columns in google have changed")
+        if has_error:
+            logger.error("Columns in google sheet have changed")
+        #    raise Exception("Columns in google sheet have changed")
 
-        for n in to_delete:
-            del df[n]
+        df = df_new
 
-        df.columns = names
+        # ---
 
+        logger.info("convert values to int")
         idx = df.columns.get_loc("localTime")
         eidx = df.columns.get_loc("lastUpdateEt")
 
         for c in df.columns[idx+1:eidx]:
-            df[c] = self.safe_convert_to_int(df, c)
+            if c.endswith("Flag"):
+                logger.info(f"  {c} is marked as boolean, skipping")
+            else:
+                df[c] = self.safe_convert_to_int(df, c)
 
         def standardize(d: str) -> str:
             sd, err_num = udatetime.standardize_date(d)
@@ -348,11 +436,16 @@ class DataSource:
         #current_time = df.loc[0, "lastCheckEt"].replace("CURRENT NAME: ", "")
         #df.loc[0, "lastCheckEt"] = ""
 
+        logger.info("convert dates")
         convert_date(df, "localTime", as_eastern=False)
         convert_date(df, "lastUpdateEt", as_eastern=True)
         convert_date(df, "lastCheckEt", as_eastern=True)
 
         df = df[ df.state != ""]
+
+
+        logger.info("compute total (used by fit checks)")
+        df["total"] = df["positive"] + df["negative"]
         return df
 
     def load_current(self) -> pd.DataFrame:

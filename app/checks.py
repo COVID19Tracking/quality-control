@@ -33,7 +33,8 @@ START_OF_TIME = udatetime.naivedatetime_as_eastern(datetime(2020,1,2))
 def missing_tests(log: ResultLog):
 
     log.internal("Missing", "pending is not testable")
-    log.internal("Missing", "recovered should be less than positives")
+    log.internal("Missing", "recovered is not readable right now")
+    log.internal("Missing", "hospitalizedCumulative is not readable right now")
     
     
     log.internal("Apple/Oranges", "hospitalized and hospitalizedCumulative are different types of measurements")
@@ -354,9 +355,10 @@ def increasing_values(row, df: pd.DataFrame, log: ResultLog, config: QCConfig = 
     source_messages = []
     has_issues, consolidate, n_days, n_days_prev = False, True, -1, 0
     for c in fieldList:
+
         val = dict_row.get(c)
         if val is None:
-            log.internal(row.state, f"{c} missing column")
+            #log.internal(row.state, f"{c} missing column")
             has_issues, consolidate = True, False
             if debug: logger.debug(f"  {c} missing column")
             continue
