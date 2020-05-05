@@ -319,10 +319,16 @@ class DataSource:
             'pushDate': '',
             # end hidden
 
+            'currentlyHospitalizedFlag': '',
+            'cumulativeHospitalizedFlag': '',
+            'currentICUFlag': '',
+            'cumulativeICUFlag': '',
+            'currentVentilatorFlag': '',
+            'cumulativeVentilatorFlag': '',
+            'recoveredFlag': '',
             'stateGrade': 'grade',
-
-
         }
+
 
         gs = WorksheetWrapper()
         dev_id = gs.get_sheet_id_by_name("dev")
