@@ -29,7 +29,7 @@ KEY_PATH = "credentials-scanner.json"
 
 def get_remote_csv(xurl: str) -> pd.DataFrame:
     r = requests.get(xurl, timeout=1)
-    if r.status_code >= 300: 
+    if r.status_code >= 300:
         raise Exception(f"Could not get {xurl}, status={r.status_code}")
     f = io.StringIO(r.text)
     df = pd.read_csv(f)
@@ -73,7 +73,7 @@ class DataSource:
                 self.failed["working"] = True
                 self.log.error(f"Could not fetch working")
             except Exception as ex:
-                logger.exception(ex)                
+                logger.exception(ex)
                 self.failed["working"] = True
                 self.log.error(f"Could not load working", exception=ex)
         return self._working
@@ -195,7 +195,7 @@ class DataSource:
             s = df[col_name]
 
             df_errs = s[is_bad]
-            if df_errs.shape[0] == 0: 
+            if df_errs.shape[0] == 0:
                 return s.astype(np.int)
 
             df_errs = df[["state", col_name]][is_bad]
@@ -212,16 +212,23 @@ class DataSource:
             exit(-1)
 
     def parse_dates(self, dates: List):
-        if len(dates) != 5:
+        if len(dates) < 4:
             raise Exception("First row layout (containing dates) changed")
         last_publish_label, last_publish_value, last_push_label, \
-            last_push_value, current_time_field = dates
+            last_push_value = dates[:4]
+
+        # find current time
+        current_time_field = None
+        for v in dates[4:]:
+            if v.startswith("CURRENT TIME:"):
+                current_time_field = v
+                break
 
         if last_publish_label != "Last Publish Time:":
             raise Exception("Last Publish Time (cells V1:U1) moved")
         if last_push_label != "Last Push Time:":
             raise Exception("Last Push Time (cells Z1:AA1) moved")
-        if not current_time_field.startswith("CURRENT TIME: "):
+        if current_time_field is None:
             raise Exception("CURRENT TIME (cell AG1) moved")
 
         self.last_publish_time = last_publish_value
@@ -262,20 +269,17 @@ class DataSource:
             'col_18': '',
             'Local Time':'localTime',
 
-            # old
-            #'Positive':'positive',
-            #'Negative':'negative',
-            #'Deaths':'death',
-            #'Total':'total',
-
             # new
             'Total Antibody Tests (People)': 'antibody_people_total',
             'Positive Antibody Tests (People)': 'antibody_people_pos',
             'Negative Antibody Tests (People)': 'antibody_people_neg',
-            'Total Tests (Specimens)': 'specimens_total',
-            'Positive Tests (Specimens)': 'specimens_positive',
-            'Negative Tests (Specimens)': 'specimens_negative',
-            'Positive Cases (People - confirmed by testing)': 'positive',
+
+            'Total Tests (PCR)': 'specimens_total',
+            'Positive Tests (PCR)': 'specimens_positive',
+            'Negative Tests (PCR)': 'specimens_negative',
+
+            'Positive Cases (PCR)': 'positive',
+            'Total Tests (People)': 'total_people',
             'Positive Cases (People, confirmed + probable)': 'positive_probable',
             'Negative (People or Cases)': 'negative',
             'Pending':'pending',
@@ -293,8 +297,9 @@ class DataSource:
             'Cumulative on Ventilator 1':'onVentilatorCumulativeFlag',
             'Recovered':'recoveredFlag',
 
-            'Deaths (Confirmed and probable)': 'death_probable',
-            'Deaths (confirmed)': 'death',
+            'Deaths (confirmed and probable)': 'death',
+            'Deaths (confirmed)': 'death_confirmed',
+            'Deaths (probable)': 'death_probable',
 
             'Last Update (ET)': 'lastUpdateEt',
             'Last Check (ET)': 'lastCheckEt',
@@ -333,7 +338,7 @@ class DataSource:
         gs = WorksheetWrapper()
         dev_id = gs.get_sheet_id_by_name("dev")
 
-        dates = gs.read_as_list(dev_id, "Worksheet 2!W1:AN1", ignore_blank_cells=True, single_row=True)
+        dates = gs.read_as_list(dev_id, "Worksheet 2!W1:BT1", ignore_blank_cells=True, single_row=True)
         self.parse_dates(dates)
 
         df = gs.read_as_frame(dev_id, "Worksheet 2!A2:BR60", header_rows=1)
@@ -360,14 +365,14 @@ class DataSource:
         logger.info("clean up names")
         cols = []
         dup_cnt = {}
-        for i, n in enumerate(df.columns):            
+        for i, n in enumerate(df.columns):
             n1 = n.replace("\r", "").replace("\n", " ").replace("  ", " ")
             n1 = n1.strip()
             if n1 == "": n1 = f"col_{i}"
             x = dup_cnt.get(n1)
             if x is None:
                 dup_cnt[n1] = 0
-            else:                
+            else:
                 dup_cnt[n1] = x = x + 1
                 n1 = f"{n1} {x}"
 
@@ -385,13 +390,13 @@ class DataSource:
             #logger.info(f"{n} {type(n)} -> {n2} {type(n)}")
             if n2 == None:
                 has_error = True
-                logger.error(f"  Unexpected column {i}: [{n}] in google sheet")            
+                logger.error(f"  Unexpected column {i}: [{n}] in google sheet")
             elif n2 != '':
-                if type(df[n]) == pd.Series: 
+                if type(df[n]) == pd.Series:
                     df_new[n2] = df[n]
-                elif type(df[n]) == pd.DataFrame:                    
-                    logger.error(f"  Name [{n}] matches multiple columns")            
-    
+                elif type(df[n]) == pd.DataFrame:
+                    logger.error(f"  Name [{n}] matches multiple columns")
+
         for n in column_map:
             if not (n1 in df.columns):
                 has_error = True

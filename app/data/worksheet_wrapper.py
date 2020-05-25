@@ -79,11 +79,11 @@ class WorksheetWrapper():
         """Read results as a list of lists"""
         values = self.read_values(sheet_id, cell_range)
         if not ignore_blank_cells: return values
-        
+
         result = []
         for row in values:
             result.append([x for x in row if x != ""])
-        
+
         if single_row: result = result[0]
         return result
 
