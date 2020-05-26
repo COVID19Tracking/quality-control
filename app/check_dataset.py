@@ -1,12 +1,7 @@
 """Run Quality Checks against human generated datasets"""
 
-import sys
 from loguru import logger
 import pandas as pd
-import numpy as np
-from datetime import datetime
-from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
-from datetime import timedelta
 
 import app.checks as checks
 from .qc_config import QCConfig
@@ -15,11 +10,16 @@ from .log.result_log import ResultLog
 from .modeling.forecast_io import load_forecast_hd5
 from .modeling.forecast_plot import plot_to_file
 from .util import udatetime
-#import .util import 
+
+# import .util import
+
 
 def is_missing(df: pd.DataFrame) -> bool:
-    if df is None: return True
-    if df.shape[0] == 0: return True
+    if df is None:
+        return True
+    if df.shape[0] == 0:
+        return True
+
 
 def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     """
@@ -32,7 +32,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     ds._target_date = config.working_date
 
     df = ds.working
-    if is_missing(df): 
+    if is_missing(df):
         log.internal("Source", "Working not available")
         return None
     if is_missing(ds.history):
@@ -54,9 +54,11 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     delta = current_time_et - sheet_current_time
     mins = delta.total_seconds() / 60.0
     if mins > 15.0:
-        log.internal("Info", f"Current Times: Server = {current_time_et}, Sheet = {sheet_current_time}")
+        log.internal(
+            "Info",
+            f"Current Times: Server = {current_time_et}, Sheet = {sheet_current_time}",
+        )
         log.internal("ERROR", f"Sheet data is {mins:.1f} minutes old")
-    
 
     if not config.is_near_release:
         log.internal("Skip", "Disable Operational checks b/c not near release")
@@ -64,7 +66,9 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     df["targetDate"] = config.working_date_int
     df["targetDateEt"] = config.working_date
 
-    logger.info(f"Running with working date = {config.working_date_int} and push number = {config.push_num}")
+    logger.info(
+        f"Running with working date = {config.working_date_int} and push number = {config.push_num}"
+    )
 
     # *** WHEN YOU CHANGE A CHECK THAT IMPACTS WORKING, MAKE SURE TO UPDATE THE EXCEL TRACKING DOCUMENT ***
 
@@ -72,27 +76,29 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     for row in df.itertuples():
         try:
 
-            #checks.total(row, log)
-            #checks.total_tests(row, log)
+            # checks.total(row, log)
+            # checks.total_tests(row, log)
             checks.last_update(row, log)
             checks.last_checked(row, log, config)
             checks.checkers_initials(row, log, config)
             checks.positives_rate(row, log)
             checks.death_rate(row, log)
-            #checks.less_recovered_than_positive(row, log)
+            # checks.less_recovered_than_positive(row, log)
             checks.pendings_rate(row, log)
 
-            if not ds.history is None:
+            if ds.history is not None:
                 df_history = ds.history[ds.history.state == row.state]
                 has_changed = checks.increasing_values(row, df_history, log, config)
                 if has_changed:
-                    checks.expected_positive_increase(row, df_history, log, "working", config)
+                    checks.expected_positive_increase(
+                        row, df_history, log, "working", config
+                    )
 
-            #checks.delta_vs_cumulative(row, df_history, log, config)
+            # checks.delta_vs_cumulative(row, df_history, log, config)
 
-            if not ds.county_rollup is None:
+            if ds.county_rollup is not None:
                 df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
-                if  not df_county_rollup.empty:
+                if not df_county_rollup.empty:
                     checks.counties_rollup_to_state(row, df_county_rollup, log)
 
         except Exception as ex:
@@ -107,17 +113,22 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
 
     checks.missing_tests(log)
 
-
     # run loop at end, insted of during run
     if config.plot_models and config.save_results:
         cnt = 0
         for row in df.itertuples():
             try:
-                forecast = load_forecast_hd5(config.results_dir, row.state, row.targetDate)
+                forecast = load_forecast_hd5(
+                    config.results_dir, row.state, row.targetDate
+                )
                 if forecast is None:
-                    logger.warning(f"Could not load forecast for {row.state}/{row.targetDate}")
+                    logger.warning(
+                        f"Could not load forecast for {row.state}/{row.targetDate}"
+                    )
                 else:
-                    plot_to_file(forecast, f"{config.images_dir}/working", checks.FIT_THRESHOLDS)
+                    plot_to_file(
+                        forecast, f"{config.images_dir}/working", checks.FIT_THRESHOLDS
+                    )
             except Exception as ex:
                 logger.exception(ex)
                 log.internal(row.state, f"{ex}")
@@ -129,6 +140,7 @@ def check_working(ds: DataSource, config: QCConfig) -> ResultLog:
     log.consolidate()
     return log
 
+
 def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     """
     Check the current published results
@@ -137,7 +149,7 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     log = ResultLog()
 
     df = ds.current
-    if is_missing(df): 
+    if is_missing(df):
         log.internal("Source", "Current not available")
         return None
 
@@ -145,7 +157,6 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
         log.internal("Source", "History not available")
     if is_missing(ds.county_rollup):
         log.internal("Source", "County Rollup not available")
-
 
     ds._target_date = config.push_date
 
@@ -155,23 +166,25 @@ def check_current(ds: DataSource, config: QCConfig) -> ResultLog:
     df["push_num"] = config.push_num
 
     for row in df.itertuples():
-        checks.total(row, log)        
+        checks.total(row, log)
         checks.last_update(row, log)
         checks.positives_rate(row, log)
         checks.death_rate(row, log)
         checks.pendings_rate(row, log)
 
-        if not ds.history is None:
+        if ds.history is not None:
             df_history = ds.history[ds.history.state == row.state]
             checks.consistent_with_history(row, df_history, log)
 
-        if not ds.history is None:
+        if ds.history is not None:
             df_history = ds.history[ds.history.state == row.state]
             has_changed = checks.increasing_values(row, df_history, log, config)
             if has_changed:
-                checks.expected_positive_increase(row, df_history, log, "current", config)
+                checks.expected_positive_increase(
+                    row, df_history, log, "current", config
+                )
 
-        if not ds.county_rollup is None:
+        if ds.county_rollup is not None:
             df_county_rollup = ds.county_rollup[ds.county_rollup.state == row.state]
             if not df_county_rollup.empty:
                 checks.counties_rollup_to_state(row, df_county_rollup, log)
@@ -188,7 +201,7 @@ def check_history(ds: DataSource) -> ResultLog:
     log = ResultLog()
 
     df = ds.history
-    if is_missing(df): 
+    if is_missing(df):
         log.internal("Source", "History not available")
         return None
 
@@ -198,4 +211,3 @@ def check_history(ds: DataSource) -> ResultLog:
 
     log.consolidate()
     return log
-
